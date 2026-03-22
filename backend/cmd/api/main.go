@@ -1,13 +1,12 @@
 package main
 
 import (
-	"context"
 	"log"
 	"os"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
+	"github.com/magwach/distributed-task-scheduler/backend/internal/db"
 )
 
 func main() {
@@ -30,9 +29,9 @@ func main() {
 	}
 
 
-	db, err := pgxpool.New(context.Background(), dbUrl)
+	pool := db.Connect()
 
-	if err != nil {
+	if pool != nil {
 		log.Fatalf("Unable to connect to DB, %v", err)
 	}
 
