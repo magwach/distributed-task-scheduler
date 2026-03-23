@@ -1,2 +1,4 @@
 .env
 */.env
+/backend/cmd/api/tmp
+/backend/cmd/scheduler/tmp

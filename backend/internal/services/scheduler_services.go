@@ -105,16 +105,28 @@ func (s *schedulerService) ProcessPendingTasks() {
 
 		task := task
 
-		updateTaskStatusToSuccessQuery := `
+		updateTaskExcecutionStatusToSuccessQuery := `
 		UPDATE task_excecutions
 		SET status = 'success', finished_at = now()
 		WHERE task_id = $1
 		`
 
-		updateTaskStatusToFailedQuery := `
+		updateTaskStatusToSuccessQuery := `
+		UPDATE tasks
+		SET status = 'success'
+		WHERE id = $1
+		`
+
+		updateTaskExcecutionStatusToFailedQuery := `
 		UPDATE task_excecutions
 		SET status = 'failed', finished_at = now(), error_message = $1
 		WHERE task_id = $2
+		`
+
+		updateTaskStatusToFailedQuery := `
+		UPDATE tasks
+		SET status = 'failed'
+		WHERE id = $1
 		`
 
 		go func(task models.Task) {
@@ -122,15 +134,41 @@ func (s *schedulerService) ProcessPendingTasks() {
 
 			if err != nil {
 				_, err = s.DB.Exec(context.Background(),
-					updateTaskStatusToFailedQuery,
+					updateTaskExcecutionStatusToFailedQuery,
 					err,
 					task.ID,
 				)
+				if err != nil {
+					log.Println("Failed to update task execution:", err)
+					return
+				}
+
+				_, err = s.DB.Exec(context.Background(),
+					updateTaskStatusToFailedQuery,
+					task.ID,
+				)
+				if err != nil {
+					log.Println("Failed to update task :", err)
+					return
+				}
 			} else {
+				_, err = s.DB.Exec(context.Background(),
+					updateTaskExcecutionStatusToSuccessQuery,
+					task.ID,
+				)
+				if err != nil {
+					log.Println("Failed to update task execution:", err)
+					return
+				}
 				_, err = s.DB.Exec(context.Background(),
 					updateTaskStatusToSuccessQuery,
 					task.ID,
 				)
+				if err != nil {
+					log.Println("Failed to update task :", err)
+					return
+				}
+
 			}
 		}(task)
 	}
