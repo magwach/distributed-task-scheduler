@@ -5,8 +5,11 @@ import (
 	"os"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/joho/godotenv"
 	"github.com/magwach/distributed-task-scheduler/backend/internal/db"
+	"github.com/magwach/distributed-task-scheduler/backend/internal/handlers"
+	"github.com/magwach/distributed-task-scheduler/backend/internal/services"
 )
 
 func main() {
@@ -28,24 +31,45 @@ func main() {
 		log.Fatal("DATABASE_URL is not set")
 	}
 
+	pool, err := db.Connect()
 
-	pool := db.Connect()
-
-	if pool != nil {
+	if err != nil {
 		log.Fatalf("Unable to connect to DB, %v", err)
 	}
 
 	defer db.Close()
 
+	taskService := services.NewTaskService(pool)
+
+	taskHandlers := handlers.NewTaskHandler(&taskService)
+
 	app := fiber.New()
 
-	app.Get("/health", func(c *fiber.Ctx) error {
+	c := cors.New(
+		cors.Config{
+			AllowOrigins: "http://localhost:3030",
+			AllowHeaders: "Content-Type, Accept, Authorization",
+			AllowMethods: "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+		},
+	)
+
+	app.Use(c)
+
+	v1Routes := app.Group("/api/v1")
+
+	v1Routes.Get("/health", func(c *fiber.Ctx) error {
 		return c.SendString("OK")
 	})
 
-	log.Printf("Server is running on port: %v", port)
+	v1Routes.Post("/tasks", taskHandlers.CreateTask)
+	v1Routes.Get("/tasks", taskHandlers.GetTasks)
+	v1Routes.Get("/tasks/:id", taskHandlers.GetTask)
+	v1Routes.Delete("/tasks/:id", taskHandlers.DeleteTask)
 
 	if err = app.Listen(":" + port); err != nil {
 		log.Fatalf("Error starting server: %v", err)
 	}
+
+	log.Printf("Server is running on port: %v", port)
+
 }
