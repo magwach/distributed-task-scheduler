@@ -19,6 +19,12 @@ func main() {
 		log.Println("Warning: No env file found")
 	}
 
+	client := os.Getenv("CLIENT_URL")
+
+	if client == "" {
+		log.Fatal("CLIENT_URL is not set")
+	}
+
 	port := os.Getenv("APP_PORT")
 	if port == "" {
 		port = "8080"
@@ -42,7 +48,7 @@ func main() {
 
 	c := cors.New(
 		cors.Config{
-			AllowOrigins: "http://localhost:3030",
+			AllowOrigins: client,
 			AllowHeaders: "Content-Type, Accept, Authorization",
 			AllowMethods: "GET, POST, PUT, PATCH, DELETE, OPTIONS",
 		},

@@ -24,8 +24,8 @@ func (r *TaskRoutesImpl) TaskRoutes() {
 
 	taskHandlers := handlers.NewTaskHandler(&taskService)
 
-	r.App.Post("/tasks", taskHandlers.CreateTask)
+	r.App.Post("/task", taskHandlers.CreateTask)
 	r.App.Get("/tasks", taskHandlers.GetTasks)
-	r.App.Get("/tasks/:id", taskHandlers.GetTask)
-	r.App.Delete("/tasks/:id", taskHandlers.DeleteTask)
+	r.App.Get("/task/:id", taskHandlers.GetTask)
+	r.App.Delete("/task/:id", taskHandlers.DeleteTask)
 }
