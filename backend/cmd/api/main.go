@@ -8,8 +8,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/joho/godotenv"
 	"github.com/magwach/distributed-task-scheduler/backend/internal/db"
-	"github.com/magwach/distributed-task-scheduler/backend/internal/handlers"
-	"github.com/magwach/distributed-task-scheduler/backend/internal/services"
+	"github.com/magwach/distributed-task-scheduler/backend/internal/routes"
 )
 
 func main() {
@@ -39,10 +38,6 @@ func main() {
 
 	defer db.Close()
 
-	taskService := services.NewTaskService(pool)
-
-	taskHandlers := handlers.NewTaskHandler(&taskService)
-
 	app := fiber.New()
 
 	c := cors.New(
@@ -61,10 +56,9 @@ func main() {
 		return c.SendString("OK")
 	})
 
-	v1Routes.Post("/tasks", taskHandlers.CreateTask)
-	v1Routes.Get("/tasks", taskHandlers.GetTasks)
-	v1Routes.Get("/tasks/:id", taskHandlers.GetTask)
-	v1Routes.Delete("/tasks/:id", taskHandlers.DeleteTask)
+	taskRoutes := routes.NewTaskRoutes(v1Routes, pool)
+
+	taskRoutes.TaskRoutes()
 
 	if err = app.Listen(":" + port); err != nil {
 		log.Fatalf("Error starting server: %v", err)
