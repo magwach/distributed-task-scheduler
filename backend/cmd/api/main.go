@@ -30,7 +30,7 @@ func main() {
 		log.Fatal("DATABASE_URL is not set")
 	}
 
-	pool, err := db.Connect()
+	pool, err := db.Connect(dbUrl)
 
 	if err != nil {
 		log.Fatalf("Unable to connect to DB, %v", err)

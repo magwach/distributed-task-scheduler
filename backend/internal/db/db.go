@@ -3,7 +3,6 @@ package db
 import (
 	"context"
 	"log"
-	"os"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -12,12 +11,7 @@ var (
 	pool *pgxpool.Pool
 )
 
-func Connect() (*pgxpool.Pool, error) {
-	databaseUrl := os.Getenv("DATABASE_URL")
-
-	if databaseUrl == "" {
-		log.Fatal("DATABASE_URL is not set")
-	}
+func Connect(databaseUrl string) (*pgxpool.Pool, error) {
 
 	config, err := pgxpool.ParseConfig(databaseUrl)
 
