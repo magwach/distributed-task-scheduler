@@ -18,6 +18,12 @@ func main() {
 		log.Println("Warning: No env file found")
 	}
 
+	redisUrl := os.Getenv("REDIS_ADDR")
+
+	if redisUrl == "" {
+		log.Fatal("REDIS_ADDR is not set")
+	}
+
 	dbUrl := os.Getenv("DATABASE_URL")
 
 	if dbUrl == "" {
@@ -30,7 +36,7 @@ func main() {
 		log.Fatalf("Unable to connect to DB, %v", err)
 	}
 
-	scheduler := services.SchedulerServiceImpl(pool)
+	scheduler := services.SchedulerServiceImpl(pool, redisUrl)
 
 	go func() {
 		ticker := time.NewTicker(5 * time.Second)

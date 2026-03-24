@@ -6,15 +6,18 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/magwach/distributed-task-scheduler/backend/internal/models"
+	"github.com/magwach/distributed-task-scheduler/backend/internal/queue"
 )
 
 type schedulerService struct {
-	DB *pgxpool.Pool
+	DB       *pgxpool.Pool
+	RedisUrl string
 }
 
-func SchedulerServiceImpl(db *pgxpool.Pool) *schedulerService {
+func SchedulerServiceImpl(db *pgxpool.Pool, redisUrl string) *schedulerService {
 	return &schedulerService{
-		DB: db,
+		DB:       db,
+		RedisUrl: redisUrl,
 	}
 }
 
@@ -99,78 +102,18 @@ func (s *schedulerService) ProcessPendingTasks() {
 		}
 	}
 
-	log.Println("Processed", len(tasks), "tasks")
+	queue.InitRedis(s.RedisUrl)
 
 	for _, task := range tasks {
+		err := queue.Enqueue(task.ID)
 
-		task := task
-
-		updateTaskExcecutionStatusToSuccessQuery := `
-		UPDATE task_excecutions
-		SET status = 'success', finished_at = now()
-		WHERE task_id = $1
-		`
-
-		updateTaskStatusToSuccessQuery := `
-		UPDATE tasks
-		SET status = 'success'
-		WHERE id = $1
-		`
-
-		updateTaskExcecutionStatusToFailedQuery := `
-		UPDATE task_excecutions
-		SET status = 'failed', finished_at = now(), error_message = $1
-		WHERE task_id = $2
-		`
-
-		updateTaskStatusToFailedQuery := `
-		UPDATE tasks
-		SET status = 'failed'
-		WHERE id = $1
-		`
-
-		go func(task models.Task) {
-			err := WorkerFunction(task)
-
-			if err != nil {
-				_, err = s.DB.Exec(context.Background(),
-					updateTaskExcecutionStatusToFailedQuery,
-					err,
-					task.ID,
-				)
-				if err != nil {
-					log.Println("Failed to update task execution:", err)
-					return
-				}
-
-				_, err = s.DB.Exec(context.Background(),
-					updateTaskStatusToFailedQuery,
-					task.ID,
-				)
-				if err != nil {
-					log.Println("Failed to update task :", err)
-					return
-				}
-			} else {
-				_, err = s.DB.Exec(context.Background(),
-					updateTaskExcecutionStatusToSuccessQuery,
-					task.ID,
-				)
-				if err != nil {
-					log.Println("Failed to update task execution:", err)
-					return
-				}
-				_, err = s.DB.Exec(context.Background(),
-					updateTaskStatusToSuccessQuery,
-					task.ID,
-				)
-				if err != nil {
-					log.Println("Failed to update task :", err)
-					return
-				}
-
-			}
-		}(task)
+		if err != nil {
+			log.Println("Failed to add the task: ", task.Title, " to redis.")
+		}
 	}
+
+	log.Println("Processed", len(tasks), "tasks")
+
+
 
 }

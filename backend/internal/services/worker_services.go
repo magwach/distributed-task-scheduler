@@ -8,7 +8,6 @@ import (
 )
 
 func WorkerFunction(task models.Task) error {
-
 	log.Println("Excecuting task: ", task.Title)
 
 	time.Sleep(3 * time.Second)
