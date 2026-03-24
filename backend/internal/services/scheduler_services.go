@@ -3,10 +3,12 @@ package services
 import (
 	"context"
 	"log"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/magwach/distributed-task-scheduler/backend/internal/models"
 	"github.com/magwach/distributed-task-scheduler/backend/internal/queue"
+	"github.com/robfig/cron/v3"
 )
 
 type schedulerService struct {
@@ -28,7 +30,8 @@ func (s *schedulerService) ProcessPendingTasks() {
 	getAllTasksWithPendingStatusQuery := `
 	SELECT *
 	FROM tasks
-	WHERE status = 'pending'
+	WHERE next_run_at <= now()
+	AND status != 'running'
 	`
 
 	rows, err := s.DB.Query(context.Background(),
@@ -41,6 +44,12 @@ func (s *schedulerService) ProcessPendingTasks() {
 	}
 
 	defer rows.Close()
+
+	updateTaskNextRunTimeQuery := `
+	UPDATE tasks 
+	SET next_run_at = $1
+	WHERE id = $2
+	`
 
 	for rows.Next() {
 		task := models.Task{}
@@ -59,6 +68,26 @@ func (s *schedulerService) ProcessPendingTasks() {
 			return
 		}
 
+		parser := cron.NewParser(
+			cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow,
+		)
+
+		schedule, err := parser.Parse(task.Schedule)
+
+		if err != nil {
+			log.Println("Failed to parse the cron")
+			return
+		}
+
+		nextRun := schedule.Next(time.Now())
+
+		task.NextRunAt = nextRun
+
+		_, err = s.DB.Exec(context.Background(),
+			updateTaskNextRunTimeQuery,
+			nextRun,
+			task.ID,
+		)
 		tasks = append(tasks, task)
 	}
 
@@ -113,7 +142,5 @@ func (s *schedulerService) ProcessPendingTasks() {
 	}
 
 	log.Println("Processed", len(tasks), "tasks")
-
-
 
 }

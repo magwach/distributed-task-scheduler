@@ -69,7 +69,12 @@ func main() {
 	SELECT *
 	FROM tasks
 	WHERE id = $1
-	
+	`
+
+	incrementTheRetriesQuery := `
+	UPDATE tasks
+	SET status = 'pending', next_run_at = now() + retry_delay
+	WHERE id = $1
 	`
 
 	queue.InitRedis(redisUrl)
@@ -97,6 +102,11 @@ func main() {
 			&task.Status,
 			&task.CreatedAt,
 			&task.UpdatedAt,
+			&task.NextRunAt,
+			&task.LastRunAt,
+			&task.MaxRetries,
+			&task.RetryCount,
+			&task.RetryDelaySeconds,
 		)
 
 		if err != nil {
@@ -108,6 +118,18 @@ func main() {
 			err := services.WorkerFunction(task)
 
 			if err != nil {
+
+				if task.RetryCount < task.MaxRetries {
+					_, err = DB.Exec(context.Background(),
+						incrementTheRetriesQuery,
+						task.ID)
+
+					if err != nil {
+						log.Println("Failed to increment retry count: ", err)
+						return
+					}
+				}
+
 				_, err = DB.Exec(context.Background(),
 					updateTaskExcecutionStatusToFailedQuery,
 					err,

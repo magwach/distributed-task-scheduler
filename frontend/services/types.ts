@@ -6,13 +6,16 @@ export type Task = {
   status: "pending" | "running" | "success" | "failed";
   created_at: string;
   updated_at: string;
+  next_run_at?: string;
+  last_run_at?: string;
   executions?: TaskExecution[];
 };
+
 
 export type TaskExecution = {
   id: string;
   task_id: string;
-  status: 'running' | 'success' | 'failed';
+  status: "running" | "success" | "failed";
   started_at: string;
   finished_at: string;
   error_message: string;
