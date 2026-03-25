@@ -136,3 +136,36 @@ func (h *TaskHandlerImpl) DeleteTask(c *fiber.Ctx) error {
 		"data":    deletedTask,
 	})
 }
+
+func (h *TaskHandlerImpl) GetLogs(c *fiber.Ctx) error {
+
+	id := c.Params("id")
+
+	if id == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Task ID is required",
+		})
+	}
+
+	parsedId, err := uuid.Parse(id)
+
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Unable to parse the id",
+		})
+	}
+
+	logs, err := h.Service.GetLogs(parsedId)
+
+	if err != nil {
+		return c.Status(http.StatusInternalServerError).JSON(&fiber.Map{
+			"error":   err.Error(),
+			"message": "Failed to get task",
+		})
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(&fiber.Map{
+		"message": "Logs fetched successfully",
+		"data":    logs,
+	})
+}

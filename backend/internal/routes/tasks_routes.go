@@ -28,4 +28,5 @@ func (r *TaskRoutesImpl) TaskRoutes() {
 	r.App.Get("/tasks", taskHandlers.GetTasks)
 	r.App.Get("/task/:id", taskHandlers.GetTask)
 	r.App.Delete("/task/:id", taskHandlers.DeleteTask)
+	r.App.Get("/task/:id/logs", taskHandlers.GetLogs)
 }

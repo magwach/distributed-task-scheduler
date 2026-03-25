@@ -29,3 +29,11 @@ type TaskExecution struct {
 	CreatedAt    time.Time  `json:"created_at"`
 	UpdatedAt    time.Time  `json:"updated_at"`
 }
+
+type TaskLog struct {
+	ID          string    `json:"id"`
+	ExecutionID string    `json:"task_id"`
+	Level       string    `json:"level"`
+	Message     string    `json:"message"`
+	CreatedAt   time.Time `json:"created_at"`
+}

@@ -7,6 +7,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/magwach/distributed-task-scheduler/backend/internal/db"
+	"github.com/magwach/distributed-task-scheduler/backend/internal/queue"
 	"github.com/magwach/distributed-task-scheduler/backend/internal/services"
 )
 
@@ -36,7 +37,9 @@ func main() {
 		log.Fatalf("Unable to connect to DB, %v", err)
 	}
 
-	scheduler := services.SchedulerServiceImpl(pool, redisUrl)
+	queue.InitRedis(redisUrl)
+
+	scheduler := services.SchedulerServiceImpl(pool)
 
 	go func() {
 		ticker := time.NewTicker(5 * time.Second)

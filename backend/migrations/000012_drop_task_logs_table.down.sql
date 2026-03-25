@@ -1,0 +1,3 @@
+DROP EXTENSION IF EXISTS pgcrypto;
+DROP TYPE IF EXISTS level_status;
+DROP TABLE IF EXISTS task_logs;

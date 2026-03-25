@@ -3,23 +3,19 @@ package services
 import (
 	"context"
 	"log"
-	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/magwach/distributed-task-scheduler/backend/internal/models"
 	"github.com/magwach/distributed-task-scheduler/backend/internal/queue"
-	"github.com/robfig/cron/v3"
 )
 
 type schedulerService struct {
-	DB       *pgxpool.Pool
-	RedisUrl string
+	DB *pgxpool.Pool
 }
 
-func SchedulerServiceImpl(db *pgxpool.Pool, redisUrl string) *schedulerService {
+func SchedulerServiceImpl(db *pgxpool.Pool) *schedulerService {
 	return &schedulerService{
-		DB:       db,
-		RedisUrl: redisUrl,
+		DB: db,
 	}
 }
 
@@ -30,7 +26,7 @@ func (s *schedulerService) ProcessPendingTasks() {
 	getAllTasksWithPendingStatusQuery := `
 	SELECT *
 	FROM tasks
-	WHERE next_run_at <= now()
+	WHERE (next_run_at <= now() OR next_run_at IS NULL)
 	AND status != 'running'
 	`
 
@@ -45,12 +41,6 @@ func (s *schedulerService) ProcessPendingTasks() {
 
 	defer rows.Close()
 
-	updateTaskNextRunTimeQuery := `
-	UPDATE tasks 
-	SET next_run_at = $1
-	WHERE id = $2
-	`
-
 	for rows.Next() {
 		task := models.Task{}
 		err := rows.Scan(
@@ -61,34 +51,17 @@ func (s *schedulerService) ProcessPendingTasks() {
 			&task.Status,
 			&task.CreatedAt,
 			&task.UpdatedAt,
+			&task.NextRunAt,
+			&task.LastRunAt,
+			&task.MaxRetries,
+			&task.RetryCount,
+			&task.RetryDelaySeconds,
 		)
 
 		if err != nil {
 			log.Println("Failed to scan task:", err)
 			return
 		}
-
-		parser := cron.NewParser(
-			cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow,
-		)
-
-		schedule, err := parser.Parse(task.Schedule)
-
-		if err != nil {
-			log.Println("Failed to parse the cron")
-			return
-		}
-
-		nextRun := schedule.Next(time.Now())
-
-		task.NextRunAt = nextRun
-
-		_, err = s.DB.Exec(context.Background(),
-			updateTaskNextRunTimeQuery,
-			nextRun,
-			task.ID,
-		)
-		tasks = append(tasks, task)
 	}
 
 	if len(tasks) == 0 {
@@ -101,44 +74,44 @@ func (s *schedulerService) ProcessPendingTasks() {
 	WHERE id = $1
 	`
 
-	for _, task := range tasks {
-		_, err := s.DB.Exec(context.Background(),
-			updateTasksToRunningQuery,
-			task.ID,
-		)
-
-		if err != nil {
-			log.Fatal("Failed to update the status")
-			return
-		}
-	}
-
 	createTasksExcecutionRecordQuery := `
 	INSERT INTO task_excecutions (task_id, status, started_at)
 	VALUES ($1, 'running', now())
 	RETURNING *
 	`
 
-	for _, value := range tasks {
-		_, err := s.DB.Exec(context.Background(),
-			createTasksExcecutionRecordQuery,
-			value.ID,
-		)
-
-		if err != nil {
-			log.Println("Failed to insert execution record:", err)
-			return
-		}
-	}
-
-	queue.InitRedis(s.RedisUrl)
-
 	for _, task := range tasks {
-		err := queue.Enqueue(task.ID)
 
-		if err != nil {
-			log.Println("Failed to add the task: ", task.Title, " to redis.")
-		}
+		go func(t models.Task) {
+			_, err := s.DB.Exec(context.Background(),
+				updateTasksToRunningQuery,
+				task.ID,
+			)
+
+			if err != nil {
+				log.Println("Failed to update the status")
+				return
+			}
+
+			_, err = s.DB.Exec(context.Background(),
+				createTasksExcecutionRecordQuery,
+				task.ID,
+			)
+
+			if err != nil {
+				log.Println("Failed to insert execution record:", err)
+				return
+			}
+
+			err = queue.Enqueue(task.ID)
+
+			if err != nil {
+				log.Println("Failed to add the task: ", task.Title, " to redis.")
+				return
+			}
+
+		}(task)
+
 	}
 
 	log.Println("Processed", len(tasks), "tasks")
