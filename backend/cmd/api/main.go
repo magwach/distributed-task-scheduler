@@ -63,8 +63,10 @@ func main() {
 	})
 
 	taskRoutes := routes.NewTaskRoutes(v1Routes, pool)
+	websocketRoutes := routes.NewWebSocketRoutes(v1Routes)
 
 	taskRoutes.TaskRoutes()
+	websocketRoutes.WebSocketRoutes()
 
 	if err = app.Listen(":" + port); err != nil {
 		log.Fatalf("Error starting server: %v", err)

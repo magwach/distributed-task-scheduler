@@ -3,16 +3,13 @@ package services
 import (
 	"context"
 	"errors"
-	"fmt"
-	"log"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/magwach/distributed-task-scheduler/backend/internal/dto"
 	"github.com/magwach/distributed-task-scheduler/backend/internal/models"
-	"github.com/robfig/cron/v3"
+	"github.com/magwach/distributed-task-scheduler/backend/pkg/utils"
 )
 
 type TaskService struct {
@@ -35,18 +32,11 @@ func (s *TaskService) CreateTask(taskInput dto.CreateTaskRequest) (*models.Task,
 	RETURNING id, title, description, schedule, status, created_at, updated_at
 	`
 
-	parser := cron.NewParser(
-		cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow,
-	)
-
-	schedule, err := parser.Parse(taskInput.Schedule)
+	nextRun, err := utils.ParseCron(task.Schedule)
 
 	if err != nil {
-		log.Println("Failed to parse the cron")
-		return nil, fmt.Errorf("invalid cron expression: %w", err)
+		return nil, err
 	}
-
-	nextRun := schedule.Next(time.Now())
 
 	err = s.DB.QueryRow(
 		context.Background(),
@@ -185,6 +175,7 @@ func (s *TaskService) GetLogs(taskId uuid.UUID) ([]models.TaskLog, error) {
 	SELECT *
 	FROM task_logs
 	WHERE execution_id = $1
+	ORDER BY created_at DESC
 	`
 
 	getTaskExcecutionId := `

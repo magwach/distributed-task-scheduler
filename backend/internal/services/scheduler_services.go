@@ -3,10 +3,12 @@ package services
 import (
 	"context"
 	"log"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/magwach/distributed-task-scheduler/backend/internal/models"
 	"github.com/magwach/distributed-task-scheduler/backend/internal/queue"
+	"github.com/magwach/distributed-task-scheduler/backend/internal/websockets"
 )
 
 type schedulerService struct {
@@ -22,6 +24,10 @@ func SchedulerServiceImpl(db *pgxpool.Pool) *schedulerService {
 func (s *schedulerService) ProcessPendingTasks() {
 
 	tasks := []models.Task{}
+
+	var executionID string
+
+	wb := websockets.HubInit()
 
 	getAllTasksWithPendingStatusQuery := `
 	SELECT *
@@ -77,7 +83,7 @@ func (s *schedulerService) ProcessPendingTasks() {
 	createTasksExcecutionRecordQuery := `
 	INSERT INTO task_excecutions (task_id, status, started_at)
 	VALUES ($1, 'running', now())
-	RETURNING *
+	RETURNING id
 	`
 
 	for _, task := range tasks {
@@ -93,10 +99,10 @@ func (s *schedulerService) ProcessPendingTasks() {
 				return
 			}
 
-			_, err = s.DB.Exec(context.Background(),
+			err = s.DB.QueryRow(context.Background(),
 				createTasksExcecutionRecordQuery,
 				task.ID,
-			)
+			).Scan(&executionID)
 
 			if err != nil {
 				log.Println("Failed to insert execution record:", err)
@@ -109,6 +115,15 @@ func (s *schedulerService) ProcessPendingTasks() {
 				log.Println("Failed to add the task: ", task.Title, " to redis.")
 				return
 			}
+
+			updateEvent := models.TaskUpdateEvent{
+				TaskID:      task.ID,
+				Status:      "running",
+				UpdatedAt:   time.Now(),
+				ExecutionID: executionID,
+			}
+
+			wb.Broadcast(updateEvent)
 
 		}(task)
 

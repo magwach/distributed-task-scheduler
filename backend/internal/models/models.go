@@ -37,3 +37,14 @@ type TaskLog struct {
 	Message     string    `json:"message"`
 	CreatedAt   time.Time `json:"created_at"`
 }
+
+type TaskUpdateEvent struct {
+	TaskID       string     `json:"task_id"`
+	Status       string     `json:"status"`
+	UpdatedAt    time.Time  `json:"updated_at"`
+	ExecutionID  string     `json:"execution_id"`
+	NextRunAt    *time.Time `json:"next_run_at,omitempty"`
+	ErrorMessage *string    `json:"error_message,omitempty"`
+	RetryCount   *int       `json:"retry_count,omitempty"`
+	MaxRetries   *int       `json:"max_retries,omitempty"`
+}

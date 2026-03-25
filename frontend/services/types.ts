@@ -9,8 +9,12 @@ export type Task = {
   next_run_at?: string;
   last_run_at?: string;
   executions?: TaskExecution[];
+  task_id?: string;
+  execution_id?: string;
+  error_message?: string;
+  retry_count?: number;
+  max_retries?: number;
 };
-
 
 export type TaskExecution = {
   id: string;
@@ -28,3 +32,4 @@ export type NewTask = {
   schedule: string;
   description?: string;
 };
+

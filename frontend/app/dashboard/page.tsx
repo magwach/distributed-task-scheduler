@@ -7,6 +7,7 @@ import { Task } from "@/services/types";
 import StatusBadge from "@/components/StatusBadge";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { toast } from "sonner";
+import { useWebSocket } from "@/hooks/useWebSockets";
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleString("en-US", {
@@ -23,6 +24,16 @@ export default function DashboardPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
 
+  const updateTask = (update: Task) => {
+    setTasks((prev) =>
+      prev.map((task) =>
+        task.id === update.task_id ? { ...task, ...update } : task,
+      ),
+    );
+  };
+
+useWebSocket({ onMessage: updateTask });
+
   const fetchTasks = useCallback(async () => {
     try {
       const data = await getTasks();
@@ -36,8 +47,6 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchTasks();
-    const interval = setInterval(fetchTasks, 5000);
-    return () => clearInterval(interval);
   }, [fetchTasks]);
 
   const handleDeleteConfirmed = async () => {

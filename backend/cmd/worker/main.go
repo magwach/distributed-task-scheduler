@@ -13,10 +13,14 @@ import (
 	"github.com/magwach/distributed-task-scheduler/backend/internal/queue"
 	"github.com/magwach/distributed-task-scheduler/backend/internal/retry"
 	"github.com/magwach/distributed-task-scheduler/backend/internal/services"
+	"github.com/magwach/distributed-task-scheduler/backend/internal/websockets"
+	"github.com/magwach/distributed-task-scheduler/backend/pkg/utils"
 	"github.com/redis/go-redis/v9"
 )
 
 func main() {
+
+	ws := websockets.HubInit()
 
 	err := godotenv.Load("../../.env")
 
@@ -54,8 +58,8 @@ func main() {
 
 	updateTaskStatusToSuccessQuery := `
 		UPDATE tasks
-		SET status = 'success'
-		WHERE id = $1
+		SET status = 'success', next_run_at = $1, last_run_at = now(), updated_at = now()
+		WHERE id = $2
 		`
 
 	updateTaskExcecutionStatusToFailedQuery := `
@@ -124,6 +128,7 @@ func main() {
 		go func(task models.Task) {
 
 			var taskExcecutionId string
+			var nextRunAt time.Time
 
 			err := DB.QueryRow(context.Background(),
 				getExcecutionIdQuery,
@@ -143,9 +148,9 @@ func main() {
 				return
 			}
 
-			startTime, err := services.WorkerFunction(task, context.Background(), DB, taskExcecutionId)
+			startTime, workerErr := services.WorkerFunction(task, context.Background(), DB, taskExcecutionId)
 
-			if err != nil {
+			if workerErr != nil {
 				if task.RetryCount < task.MaxRetries {
 
 					delay := retry.Delay(task.RetryDelaySeconds, task.RetryCount)
@@ -176,7 +181,7 @@ func main() {
 
 				_, err = DB.Exec(context.Background(),
 					updateTaskExcecutionStatusToFailedQuery,
-					err,
+					workerErr.Error(),
 					task.ID,
 				)
 				if err != nil {
@@ -193,6 +198,21 @@ func main() {
 					return
 				}
 
+				errMsg := workerErr.Error()
+
+				taskUpdate := models.TaskUpdateEvent{
+					TaskID:       task.ID,
+					Status:       "failed",
+					UpdatedAt:    time.Now(),
+					ExecutionID:  taskExcecutionId,
+					ErrorMessage: &errMsg,
+					RetryCount:   &task.RetryCount,
+					MaxRetries:   &task.MaxRetries,
+					NextRunAt:    &nextRunAt,
+				}
+
+				ws.Broadcast(taskUpdate)
+
 				err = services.WriteLog(context.Background(), DB, taskExcecutionId, "error", fmt.Sprintf("Task failed: %v", err))
 
 				if err != nil {
@@ -208,14 +228,35 @@ func main() {
 					log.Println("Failed to update task execution:", err)
 					return
 				}
+
+				nextRunAt, err = utils.ParseCron(task.Schedule)
+
+				if err != nil {
+					log.Println("Failed to parse cron :", err)
+					return
+				}
+
 				_, err = DB.Exec(context.Background(),
 					updateTaskStatusToSuccessQuery,
+					nextRunAt,
 					task.ID,
 				)
+
 				if err != nil {
 					log.Println("Failed to update task :", err)
 					return
 				}
+
+				taskUpdate := models.TaskUpdateEvent{
+					TaskID:      task.ID,
+					Status:      "success",
+					UpdatedAt:   time.Now(),
+					ExecutionID: taskExcecutionId,
+					NextRunAt:   &nextRunAt,
+				}
+
+				ws.Broadcast(taskUpdate)
+
 				duration := time.Since(startTime)
 				err = services.WriteLog(context.Background(), DB, taskExcecutionId, "info", fmt.Sprintf("Task completed successfully in %v ms", duration.Milliseconds()))
 
