@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"log"
-
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/websocket/v2"
 	"github.com/magwach/distributed-task-scheduler/backend/internal/websockets"
@@ -23,12 +21,15 @@ func (h *WebSocketHanlderImpl) RegisterRoutes(c *fiber.Ctx) error {
 		h.Hub.AddClient(conn)
 		defer h.Hub.RemoveClient(conn)
 
-		for {
-			_, msg, err := conn.ReadMessage()
-			if err != nil {
-				log.Println("WebSocet disconnected: ", err)
-			}
-			log.Println("Recieved from client: ", string(msg))
-		}
+		select {}
+
+		// If I wanted to read from client
+		// for {
+		// 	_, msg, err := conn.ReadMessage()
+		// 	if err != nil {
+		// 		log.Println("WebSocet disconnected: ", err)
+		// 	}
+		// 	log.Println("Recieved from client: ", string(msg))
+		// }
 	})(c)
 }

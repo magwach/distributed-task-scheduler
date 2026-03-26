@@ -32,7 +32,7 @@ func (s *TaskService) CreateTask(taskInput dto.CreateTaskRequest) (*models.Task,
 	RETURNING id, title, description, schedule, status, created_at, updated_at
 	`
 
-	nextRun, err := utils.ParseCron(task.Schedule)
+	nextRun, err := utils.ParseCron(taskInput.Schedule)
 
 	if err != nil {
 		return nil, err

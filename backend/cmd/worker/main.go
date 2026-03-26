@@ -70,7 +70,7 @@ func main() {
 
 	updateTaskStatusToFailedQuery := `
 		UPDATE tasks
-		SET status = 'failed'
+		SET status = 'failed', retry_count = 0
 		WHERE id = $1
 		`
 	getTaskDetailsQuery := `
@@ -81,8 +81,8 @@ func main() {
 
 	incrementTheRetriesQuery := `
 	UPDATE tasks
-	SET status = 'pending', next_run_at = now() + $1, retry_count = $2
-	WHERE id = $3
+	SET status = 'pending', next_run_at = $1, retry_count = $2, retry_delay_seconds = $3
+	WHERE id = $4
 	`
 	getExcecutionIdQuery := `
 	SELECT id
@@ -117,11 +117,10 @@ func main() {
 			&task.LastRunAt,
 			&task.MaxRetries,
 			&task.RetryCount,
-			&task.RetryDelaySeconds,
-		)
+			&task.RetryDelaySeconds)
 
 		if err != nil {
-			log.Println("Failed to fetch task details for ID:", taskId)
+			log.Println("Failed to fetch task details for ID:", taskId, " error: ", err)
 			continue
 		}
 
@@ -153,12 +152,14 @@ func main() {
 			if workerErr != nil {
 				if task.RetryCount < task.MaxRetries {
 
-					delay := retry.Delay(task.RetryDelaySeconds, task.RetryCount)
+					retryDelaySeconds := retry.Delay(task.RetryDelaySeconds, task.RetryCount)
 
+					delay := time.Now().Add(time.Duration(retryDelaySeconds) * time.Second)
 					_, err = DB.Exec(context.Background(),
 						incrementTheRetriesQuery,
 						delay,
 						task.RetryCount+1,
+						retryDelaySeconds,
 						task.ID)
 
 					if err != nil {
@@ -166,11 +167,13 @@ func main() {
 						return
 					}
 
-					err = services.WriteLog(context.Background(), DB, taskExcecutionId, "warn", fmt.Sprintf("Task failed. Scheduling retry %v/%v in %vs", task.RetryCount, task.MaxRetries, delay))
+					err = services.WriteLog(context.Background(), DB, taskExcecutionId, "warning", fmt.Sprintf("Task failed. Scheduling retry %v/%v in %vs", task.RetryCount+1, task.MaxRetries, retryDelaySeconds))
 
 					if err != nil {
 						return
 					}
+
+					return
 				} else {
 					err = services.WriteLog(context.Background(), DB, taskExcecutionId, "error", fmt.Sprintf("Task permanently failed after %v attempts", task.MaxRetries))
 
@@ -213,7 +216,7 @@ func main() {
 
 				ws.Broadcast(taskUpdate)
 
-				err = services.WriteLog(context.Background(), DB, taskExcecutionId, "error", fmt.Sprintf("Task failed: %v", err))
+				err = services.WriteLog(context.Background(), DB, taskExcecutionId, "error", fmt.Sprintf("Task failed: %v", errMsg))
 
 				if err != nil {
 					return
@@ -254,7 +257,6 @@ func main() {
 					ExecutionID: taskExcecutionId,
 					NextRunAt:   &nextRunAt,
 				}
-
 				ws.Broadcast(taskUpdate)
 
 				duration := time.Since(startTime)

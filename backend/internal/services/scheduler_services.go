@@ -13,11 +13,13 @@ import (
 
 type schedulerService struct {
 	DB *pgxpool.Pool
+	WB *websockets.Hub
 }
 
-func SchedulerServiceImpl(db *pgxpool.Pool) *schedulerService {
+func SchedulerServiceImpl(db *pgxpool.Pool, wb *websockets.Hub) *schedulerService {
 	return &schedulerService{
 		DB: db,
+		WB: wb,
 	}
 }
 
@@ -27,12 +29,10 @@ func (s *schedulerService) ProcessPendingTasks() {
 
 	var executionID string
 
-	wb := websockets.HubInit()
-
 	getAllTasksWithPendingStatusQuery := `
 	SELECT *
 	FROM tasks
-	WHERE (next_run_at <= now() OR next_run_at IS NULL)
+	WHERE next_run_at <= now()
 	AND status != 'running'
 	`
 
@@ -66,8 +66,10 @@ func (s *schedulerService) ProcessPendingTasks() {
 
 		if err != nil {
 			log.Println("Failed to scan task:", err)
-			return
+			continue
 		}
+
+		tasks = append(tasks, task)
 	}
 
 	if len(tasks) == 0 {
@@ -123,10 +125,8 @@ func (s *schedulerService) ProcessPendingTasks() {
 				ExecutionID: executionID,
 			}
 
-			wb.Broadcast(updateEvent)
-
+			s.WB.Broadcast(updateEvent)
 		}(task)
-
 	}
 
 	log.Println("Processed", len(tasks), "tasks")

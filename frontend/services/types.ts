@@ -1,20 +1,29 @@
 export type Task = {
-  id: string;
-  title: string;
-  description: string;
-  schedule: string;
-  status: "pending" | "running" | "success" | "failed";
-  created_at: string;
-  updated_at: string;
-  next_run_at?: string;
-  last_run_at?: string;
-  executions?: TaskExecution[];
-  task_id?: string;
-  execution_id?: string;
-  error_message?: string;
-  retry_count?: number;
-  max_retries?: number;
-};
+  id: string
+  title: string
+  description: string
+  schedule: string
+  status: 'pending' | 'running' | 'success' | 'failed'
+  created_at: string
+  updated_at: string
+  next_run_at: string | null
+  last_run_at: string | null
+  max_retries: number
+  retry_count: number
+  retry_delay_seconds: number
+  executions?: TaskExecution[]
+}
+
+export type TaskUpdateEvent = {
+  task_id: string
+  execution_id: string
+  status: 'pending' | 'running' | 'success' | 'failed'
+  updated_at: string
+  next_run_at?: string | null
+  error_message?: string | null
+  retry_count?: number
+  max_retries?: number
+}
 
 export type TaskExecution = {
   id: string;
@@ -32,4 +41,3 @@ export type NewTask = {
   schedule: string;
   description?: string;
 };
-

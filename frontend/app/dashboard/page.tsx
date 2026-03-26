@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { getTasks, deleteTask } from "@/services/api";
-import { Task } from "@/services/types";
+import { Task, TaskUpdateEvent } from "@/services/types";
 import StatusBadge from "@/components/StatusBadge";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { toast } from "sonner";
@@ -24,15 +24,23 @@ export default function DashboardPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
 
-  const updateTask = (update: Task) => {
+  const updateTask = (update: TaskUpdateEvent) => {
     setTasks((prev) =>
       prev.map((task) =>
-        task.id === update.task_id ? { ...task, ...update } : task,
+        task.id === update.task_id
+          ? {
+              ...task,
+              status: update.status,
+              updated_at: update.updated_at,
+              next_run_at: update.next_run_at ?? task.next_run_at,
+              retry_count: update.retry_count ?? task.retry_count,
+            }
+          : task,
       ),
     );
   };
 
-useWebSocket({ onMessage: updateTask });
+  useWebSocket({ onMessage: updateTask });
 
   const fetchTasks = useCallback(async () => {
     try {

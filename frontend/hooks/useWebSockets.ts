@@ -1,12 +1,12 @@
 "use client";
 
-import { Task } from "@/services/types";
+import { TaskUpdateEvent } from "@/services/types";
 import { useEffect, useRef, useState } from "react";
 
 export const useWebSocket = ({
   onMessage,
 }: {
-  onMessage: (taskUpdate: Task) => void;
+  onMessage: (taskUpdate: TaskUpdateEvent) => void;
 }) => {
   const socketRef = useRef<WebSocket | null>(null);
   const [connected, setConnected] = useState(false);
@@ -31,7 +31,9 @@ export const useWebSocket = ({
 
       socket.onmessage = (event) => {
         try {
-          const data: Task = JSON.parse(event.data);
+          console.log("Event: ", event);
+          const data: TaskUpdateEvent = JSON.parse(event.data);
+          console.log("Data: ", data);
           onMessage(data);
         } catch (err) {
           console.error("Invalid WS message:", err);

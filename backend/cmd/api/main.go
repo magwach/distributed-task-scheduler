@@ -63,7 +63,7 @@ func main() {
 	})
 
 	taskRoutes := routes.NewTaskRoutes(v1Routes, pool)
-	websocketRoutes := routes.NewWebSocketRoutes(v1Routes)
+	websocketRoutes := routes.NewWebSocketRoutes(app)
 
 	taskRoutes.TaskRoutes()
 	websocketRoutes.WebSocketRoutes()
