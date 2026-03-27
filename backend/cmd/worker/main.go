@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -13,14 +14,11 @@ import (
 	"github.com/magwach/distributed-task-scheduler/backend/internal/queue"
 	"github.com/magwach/distributed-task-scheduler/backend/internal/retry"
 	"github.com/magwach/distributed-task-scheduler/backend/internal/services"
-	"github.com/magwach/distributed-task-scheduler/backend/internal/websockets"
 	"github.com/magwach/distributed-task-scheduler/backend/pkg/utils"
 	"github.com/redis/go-redis/v9"
 )
 
 func main() {
-
-	ws := websockets.HubInit()
 
 	err := godotenv.Load("../../.env")
 
@@ -203,7 +201,7 @@ func main() {
 
 				errMsg := workerErr.Error()
 
-				taskUpdate := models.TaskUpdateEvent{
+				updateEvent := models.TaskUpdateEvent{
 					TaskID:       task.ID,
 					Status:       "failed",
 					UpdatedAt:    time.Now(),
@@ -214,7 +212,17 @@ func main() {
 					NextRunAt:    &nextRunAt,
 				}
 
-				ws.Broadcast(taskUpdate)
+				data, err := json.Marshal(updateEvent)
+
+				if err != nil {
+					log.Println("Failed to parse the message to JSON")
+					return
+				}
+
+				err = queue.GetRedisClient().Publish(context.Background(), "task:updates", data).Err()
+				if err != nil {
+					log.Println("Failed to publish task update:", err)
+				}
 
 				err = services.WriteLog(context.Background(), DB, taskExcecutionId, "error", fmt.Sprintf("Task failed: %v", errMsg))
 
@@ -250,14 +258,25 @@ func main() {
 					return
 				}
 
-				taskUpdate := models.TaskUpdateEvent{
+				updateEvent := models.TaskUpdateEvent{
 					TaskID:      task.ID,
 					Status:      "success",
 					UpdatedAt:   time.Now(),
 					ExecutionID: taskExcecutionId,
 					NextRunAt:   &nextRunAt,
 				}
-				ws.Broadcast(taskUpdate)
+
+				data, err := json.Marshal(updateEvent)
+
+				if err != nil {
+					log.Println("Failed to parse the message to JSON")
+					return
+				}
+
+				err = queue.GetRedisClient().Publish(context.Background(), "task:updates", data).Err()
+				if err != nil {
+					log.Println("Failed to publish task update:", err)
+				}
 
 				duration := time.Since(startTime)
 				err = services.WriteLog(context.Background(), DB, taskExcecutionId, "info", fmt.Sprintf("Task completed successfully in %v ms", duration.Milliseconds()))

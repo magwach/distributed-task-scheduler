@@ -38,10 +38,6 @@ func (h *Hub) RemoveClient(conn *websocket.Conn) {
 func (h *Hub) Broadcast(message models.TaskUpdateEvent) {
 	h.lock.Lock()
 	defer h.lock.Unlock()
-
-	log.Println("Hitt")
-	log.Println("message", message)
-
 	data, err := json.Marshal(message)
 
 	if err != nil {

@@ -31,9 +31,7 @@ export const useWebSocket = ({
 
       socket.onmessage = (event) => {
         try {
-          console.log("Event: ", event);
           const data: TaskUpdateEvent = JSON.parse(event.data);
-          console.log("Data: ", data);
           onMessage(data);
         } catch (err) {
           console.error("Invalid WS message:", err);

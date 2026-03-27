@@ -8,18 +8,19 @@ import (
 
 type WebSocketRoutesImpl struct {
 	App fiber.Router
+	Hub *websockets.Hub
 }
 
-func NewWebSocketRoutes(app fiber.Router) *WebSocketRoutesImpl {
+func NewWebSocketRoutes(app fiber.Router, hub *websockets.Hub) *WebSocketRoutesImpl {
 	return &WebSocketRoutesImpl{
 		App: app,
+		Hub: hub,
 	}
 }
 
 func (r *WebSocketRoutesImpl) WebSocketRoutes() {
-	hub := websockets.HubInit()
 
-	webSocketHandler := handlers.NewWebSocketHandler(hub)
+	webSocketHandler := handlers.NewWebSocketHandler(r.Hub)
 
 	r.App.Get("/ws", webSocketHandler.RegisterRoutes)
 

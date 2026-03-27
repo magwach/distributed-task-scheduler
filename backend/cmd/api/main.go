@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
 	"log"
 	"os"
 
@@ -8,7 +10,10 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/joho/godotenv"
 	"github.com/magwach/distributed-task-scheduler/backend/internal/db"
+	"github.com/magwach/distributed-task-scheduler/backend/internal/models"
+	"github.com/magwach/distributed-task-scheduler/backend/internal/queue"
 	"github.com/magwach/distributed-task-scheduler/backend/internal/routes"
+	"github.com/magwach/distributed-task-scheduler/backend/internal/websockets"
 )
 
 func main() {
@@ -28,6 +33,12 @@ func main() {
 	port := os.Getenv("APP_PORT")
 	if port == "" {
 		port = "8080"
+	}
+
+	redisUrl := os.Getenv("REDIS_ADDR")
+
+	if redisUrl == "" {
+		log.Fatal("REDIS_ADDR is not set")
 	}
 
 	dbUrl := os.Getenv("DATABASE_URL")
@@ -63,7 +74,26 @@ func main() {
 	})
 
 	taskRoutes := routes.NewTaskRoutes(v1Routes, pool)
-	websocketRoutes := routes.NewWebSocketRoutes(app)
+
+	queue.InitRedis(redisUrl)
+
+	hub := websockets.HubInit()
+
+	go func() {
+		sub := queue.GetRedisClient().Subscribe(context.Background(), "task:updates")
+		ch := sub.Channel()
+		for msg := range ch {
+			var event models.TaskUpdateEvent
+			err := json.Unmarshal([]byte(msg.Payload), &event)
+			if err != nil {
+				log.Println("Failed to unmarshal task update:", err)
+				continue
+			}
+			hub.Broadcast(event)
+		}
+	}()
+
+	websocketRoutes := routes.NewWebSocketRoutes(app, hub)
 
 	taskRoutes.TaskRoutes()
 	websocketRoutes.WebSocketRoutes()

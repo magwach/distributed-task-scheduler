@@ -2,24 +2,22 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/magwach/distributed-task-scheduler/backend/internal/models"
 	"github.com/magwach/distributed-task-scheduler/backend/internal/queue"
-	"github.com/magwach/distributed-task-scheduler/backend/internal/websockets"
 )
 
 type schedulerService struct {
 	DB *pgxpool.Pool
-	WB *websockets.Hub
 }
 
-func SchedulerServiceImpl(db *pgxpool.Pool, wb *websockets.Hub) *schedulerService {
+func SchedulerServiceImpl(db *pgxpool.Pool) *schedulerService {
 	return &schedulerService{
 		DB: db,
-		WB: wb,
 	}
 }
 
@@ -125,7 +123,19 @@ func (s *schedulerService) ProcessPendingTasks() {
 				ExecutionID: executionID,
 			}
 
-			s.WB.Broadcast(updateEvent)
+			data, err := json.Marshal(updateEvent)
+
+			if err != nil {
+				log.Println("Failed to parse the message to JSON")
+				return
+			}
+
+
+			err = queue.GetRedisClient().Publish(context.Background(), "task:updates", data).Err()
+			if err != nil {
+				log.Println("Failed to publish task update:", err)
+			}
+
 		}(task)
 	}
 

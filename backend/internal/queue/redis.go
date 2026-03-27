@@ -55,3 +55,7 @@ func Dequeue(timeout time.Duration) (string, error) {
 
 	return taskId, nil
 }
+
+func GetRedisClient() *redis.Client {
+	return RedisClient
+}

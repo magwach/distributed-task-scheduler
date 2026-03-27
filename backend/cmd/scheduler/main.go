@@ -9,7 +9,6 @@ import (
 	"github.com/magwach/distributed-task-scheduler/backend/internal/db"
 	"github.com/magwach/distributed-task-scheduler/backend/internal/queue"
 	"github.com/magwach/distributed-task-scheduler/backend/internal/services"
-	"github.com/magwach/distributed-task-scheduler/backend/internal/websockets"
 )
 
 func main() {
@@ -40,9 +39,7 @@ func main() {
 
 	queue.InitRedis(redisUrl)
 
-	wb := websockets.HubInit()
-
-	scheduler := services.SchedulerServiceImpl(pool, wb)
+	scheduler := services.SchedulerServiceImpl(pool)
 
 	go func() {
 		ticker := time.NewTicker(5 * time.Second)
