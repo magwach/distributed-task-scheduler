@@ -88,3 +88,25 @@ export async function createTask(task: NewTask): Promise<Task[]> {
     return [];
   }
 }
+
+export async function retryTask(taskId: String): Promise<string> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/task/${taskId}/retry`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!res.ok) {
+      throw new Error("Failed to retry task");
+    }
+
+    const data = await res.json();
+
+    return "success";
+  } catch (error) {
+    console.error("Failed to retry tasks");
+    return "failed";
+  }
+}

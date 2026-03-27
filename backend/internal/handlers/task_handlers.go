@@ -169,3 +169,33 @@ func (h *TaskHandlerImpl) GetLogs(c *fiber.Ctx) error {
 		"data":    logs,
 	})
 }
+
+func (h *TaskHandlerImpl) RetryTask(c *fiber.Ctx) error {
+	id := c.Params("id")
+
+	if id == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Task ID is required",
+		})
+	}
+
+	parsedId, err := uuid.Parse(id)
+
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Unable to parse the id",
+		})
+	}
+	err = h.Service.RetryTask(parsedId)
+
+	if err != nil {
+		return c.Status(http.StatusInternalServerError).JSON(&fiber.Map{
+			"error":   err.Error(),
+			"message": "Failed to retry task",
+		})
+	}
+
+	return c.Status(fiber.StatusAccepted).JSON(&fiber.Map{
+		"message": "Task retried successfully",
+	})
+}

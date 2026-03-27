@@ -86,6 +86,8 @@ func main() {
 	SELECT id
 	FROM task_excecutions
 	WHERE task_id = $1
+	ORDER BY created_at DESC
+	LIMIT 1
 	`
 
 	for {

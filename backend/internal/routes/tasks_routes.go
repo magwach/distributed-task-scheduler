@@ -29,4 +29,5 @@ func (r *TaskRoutesImpl) TaskRoutes() {
 	r.App.Get("/task/:id", taskHandlers.GetTask)
 	r.App.Delete("/task/:id", taskHandlers.DeleteTask)
 	r.App.Get("/task/:id/logs", taskHandlers.GetLogs)
+	r.App.Post("/task/:id/retry", taskHandlers.RetryTask)
 }

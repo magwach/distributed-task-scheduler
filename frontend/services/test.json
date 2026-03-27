@@ -1,0 +1,114 @@
+{
+    "data": {
+        "id": "8858d7bb-9dec-43fb-9baf-563dd04b4d84",
+        "title": "Test 1",
+        "description": "Test Description",
+        "schedule": "* * * * *",
+        "status": "success",
+        "created_at": "2026-03-26T16:10:48.059012+03:00",
+        "updated_at": "2026-03-27T21:36:05.262739+03:00",
+        "next_run_at": "2026-03-27T21:37:00+03:00",
+        "last_run_at": "2026-03-27T21:36:05.262739+03:00",
+        "max_retries": 3,
+        "retry_count": 0,
+        "retry_delay_seconds": 60,
+        "executions": [
+            {
+                "id": "ba05d503-b96c-4b6d-9d04-d3899af623ab",
+                "task_id": "8858d7bb-9dec-43fb-9baf-563dd04b4d84",
+                "status": "success",
+                "started_at": "2026-03-27T18:34:22.270694Z",
+                "finished_at": "2026-03-27T18:36:05.261382Z",
+                "error_message": null,
+                "created_at": "2026-03-27T21:34:22.270694+03:00",
+                "updated_at": "2026-03-27T21:34:22.270694+03:00",
+                "logs": [
+                    {
+                        "id": "4e7151f0-c73b-4f8a-abee-965f079b72b0",
+                        "task_id": "ba05d503-b96c-4b6d-9d04-d3899af623ab",
+                        "level": "info",
+                        "message": "Worker picked up task Test 1 (id: 8858d7bb-9dec-43fb-9baf-563dd04b4d84)",
+                        "created_at": "2026-03-27T18:34:22.292209Z"
+                    },
+                    {
+                        "id": "d17cd018-86f2-44a4-b310-1b8dca8de68e",
+                        "task_id": "ba05d503-b96c-4b6d-9d04-d3899af623ab",
+                        "level": "info",
+                        "message": "Execution started",
+                        "created_at": "2026-03-27T18:34:22.294835Z"
+                    },
+                    {
+                        "id": "a0c35683-1273-4a4a-aca7-b5fa685ad608",
+                        "task_id": "ba05d503-b96c-4b6d-9d04-d3899af623ab",
+                        "level": "info",
+                        "message": "Task completed successfully in 3013 ms",
+                        "created_at": "2026-03-27T18:34:25.307722Z"
+                    },
+                    {
+                        "id": "a50cd4cd-f0fe-4a76-b005-50cfb52a561e",
+                        "task_id": "ba05d503-b96c-4b6d-9d04-d3899af623ab",
+                        "level": "info",
+                        "message": "Worker picked up task Test 1 (id: 8858d7bb-9dec-43fb-9baf-563dd04b4d84)",
+                        "created_at": "2026-03-27T18:35:02.261648Z"
+                    },
+                    {
+                        "id": "e3ffb61d-47a5-4005-9627-1ecbc211ecab",
+                        "task_id": "ba05d503-b96c-4b6d-9d04-d3899af623ab",
+                        "level": "info",
+                        "message": "Execution started",
+                        "created_at": "2026-03-27T18:35:02.262891Z"
+                    },
+                    {
+                        "id": "281e0026-366a-4355-9e1e-a07d07b70caf",
+                        "task_id": "ba05d503-b96c-4b6d-9d04-d3899af623ab",
+                        "level": "info",
+                        "message": "Task completed successfully in 3005 ms",
+                        "created_at": "2026-03-27T18:35:05.268091Z"
+                    },
+                    {
+                        "id": "58743151-349f-479b-92fd-30e2054405d1",
+                        "task_id": "ba05d503-b96c-4b6d-9d04-d3899af623ab",
+                        "level": "info",
+                        "message": "Worker picked up task Test 1 (id: 8858d7bb-9dec-43fb-9baf-563dd04b4d84)",
+                        "created_at": "2026-03-27T18:36:02.258642Z"
+                    },
+                    {
+                        "id": "b73b124b-be53-416b-b498-c1cc43c1b6f4",
+                        "task_id": "ba05d503-b96c-4b6d-9d04-d3899af623ab",
+                        "level": "info",
+                        "message": "Execution started",
+                        "created_at": "2026-03-27T18:36:02.259623Z"
+                    },
+                    {
+                        "id": "5bdc2320-6e31-4e8d-9571-cd4812d88907",
+                        "task_id": "ba05d503-b96c-4b6d-9d04-d3899af623ab",
+                        "level": "info",
+                        "message": "Task completed successfully in 3004 ms",
+                        "created_at": "2026-03-27T18:36:05.264107Z"
+                    }
+                ]
+            },
+            {
+                "id": "fd178866-c7b8-42c7-8fe7-6b00209718f6",
+                "task_id": "8858d7bb-9dec-43fb-9baf-563dd04b4d84",
+                "status": "success",
+                "started_at": "2026-03-27T18:35:02.258335Z",
+                "finished_at": "2026-03-27T18:36:05.261382Z",
+                "error_message": null,
+                "created_at": "2026-03-27T21:35:02.258335+03:00",
+                "updated_at": "2026-03-27T21:35:02.258335+03:00"
+            },
+            {
+                "id": "43cb8dcc-a91e-4052-a0c9-41bfd8b27ec1",
+                "task_id": "8858d7bb-9dec-43fb-9baf-563dd04b4d84",
+                "status": "success",
+                "started_at": "2026-03-27T18:36:02.255963Z",
+                "finished_at": "2026-03-27T18:36:05.261382Z",
+                "error_message": null,
+                "created_at": "2026-03-27T21:36:02.255963+03:00",
+                "updated_at": "2026-03-27T21:36:02.255963+03:00"
+            }
+        ]
+    },
+    "message": "Task fetched successfully"
+}
