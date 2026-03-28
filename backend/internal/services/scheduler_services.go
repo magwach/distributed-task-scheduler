@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/magwach/distributed-task-scheduler/backend/internal/lock"
 	"github.com/magwach/distributed-task-scheduler/backend/internal/models"
 	"github.com/magwach/distributed-task-scheduler/backend/internal/queue"
 )
@@ -24,8 +25,6 @@ func SchedulerServiceImpl(db *pgxpool.Pool) *schedulerService {
 func (s *schedulerService) ProcessPendingTasks() {
 
 	tasks := []models.Task{}
-
-	var executionID string
 
 	getAllTasksWithPendingStatusQuery := `
 	SELECT *
@@ -77,7 +76,7 @@ func (s *schedulerService) ProcessPendingTasks() {
 	updateTasksToRunningQuery := `
 	UPDATE tasks
 	SET status = 'running'
-	WHERE id = $1
+	WHERE id = $1 AND status = 'pending'
 	`
 
 	createTasksExcecutionRecordQuery := `
@@ -88,10 +87,21 @@ func (s *schedulerService) ProcessPendingTasks() {
 
 	for _, task := range tasks {
 
-		go func(t models.Task) {
+		lockAquired, lockValue := lock.AquireLock(task.ID)
+
+		if !lockAquired {
+			log.Println("Task already locked, skipping:", task.ID)
+			continue
+		}
+
+		go func(t models.Task, lockValue string) {
+			var executionID string
+
+			defer lock.ReleaseLock(t.ID, lockValue)
+
 			_, err := s.DB.Exec(context.Background(),
 				updateTasksToRunningQuery,
-				task.ID,
+				t.ID,
 			)
 
 			if err != nil {
@@ -101,7 +111,7 @@ func (s *schedulerService) ProcessPendingTasks() {
 
 			err = s.DB.QueryRow(context.Background(),
 				createTasksExcecutionRecordQuery,
-				task.ID,
+				t.ID,
 			).Scan(&executionID)
 
 			if err != nil {
@@ -109,15 +119,15 @@ func (s *schedulerService) ProcessPendingTasks() {
 				return
 			}
 
-			err = queue.Enqueue(task.ID)
+			err = queue.Enqueue(t.ID)
 
 			if err != nil {
-				log.Println("Failed to add the task: ", task.Title, " to redis.")
+				log.Println("Failed to add the task: ", t.Title, " to redis.")
 				return
 			}
 
 			updateEvent := models.TaskUpdateEvent{
-				TaskID:      task.ID,
+				TaskID:      t.ID,
 				Status:      "running",
 				UpdatedAt:   time.Now(),
 				ExecutionID: executionID,
@@ -130,13 +140,12 @@ func (s *schedulerService) ProcessPendingTasks() {
 				return
 			}
 
-
 			err = queue.GetRedisClient().Publish(context.Background(), "task:updates", data).Err()
 			if err != nil {
 				log.Println("Failed to publish task update:", err)
 			}
 
-		}(task)
+		}(task, lockValue)
 	}
 
 	log.Println("Processed", len(tasks), "tasks")
