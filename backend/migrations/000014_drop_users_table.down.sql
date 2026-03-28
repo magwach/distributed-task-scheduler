@@ -1,0 +1,3 @@
+DROP TABLE IF EXISTS users;
+DROP TYPE IF EXISTS role_enum;
+DROP TYPE IF EXISTS provider_enum;
