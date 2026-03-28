@@ -22,14 +22,5 @@ func (h *WebSocketHanlderImpl) RegisterRoutes(c *fiber.Ctx) error {
 		defer h.Hub.RemoveClient(conn)
 
 		select {}
-
-		// If I wanted to read from client
-		// for {
-		// 	_, msg, err := conn.ReadMessage()
-		// 	if err != nil {
-		// 		log.Println("WebSocet disconnected: ", err)
-		// 	}
-		// 	log.Println("Recieved from client: ", string(msg))
-		// }
 	})(c)
 }

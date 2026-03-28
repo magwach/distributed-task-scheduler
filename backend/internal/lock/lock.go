@@ -26,6 +26,11 @@ func AquireLock(taskID string) (bool, string) {
 		return false, ""
 	}
 
+	if !ok {
+		log.Println("Lock is held by someone else")
+		return false, ""
+	}
+
 	return ok, value
 }
 
