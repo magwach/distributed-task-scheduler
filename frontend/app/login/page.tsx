@@ -68,7 +68,7 @@ export default function LoginPage() {
     try {
       await login(form);
       toast.success("Welcome back.");
-      router.push("/dashboard");
+      window.location.href = "/dashboard";
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Invalid credentials.");
     } finally {

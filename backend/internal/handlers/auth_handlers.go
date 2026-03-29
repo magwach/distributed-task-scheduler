@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -72,6 +73,7 @@ func (h *AuthHandlerImpl) Login(c *fiber.Ctx) error {
 	token, err := h.Service.Login(input)
 
 	if err != nil {
+		log.Println("Failed to login: ", err)
 		return c.Status(http.StatusInternalServerError).JSON(&fiber.Map{
 			"error":   err.Error(),
 			"message": "Failed to login",

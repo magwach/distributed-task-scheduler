@@ -26,7 +26,7 @@ func (s *AuthService) GetUserByEmail(email string) (*models.User, error) {
 	user := models.User{}
 
 	query := `
-	SELECT id, name, email, role, provider, provider_id, avatar_url, created_at, updated_at
+	SELECT id, name, email, password_hash, role, provider, provider_id, avatar_url, created_at, updated_at
 	FROM users
 	WHERE email = $1
 	`
@@ -38,6 +38,7 @@ func (s *AuthService) GetUserByEmail(email string) (*models.User, error) {
 		&user.ID,
 		&user.Name,
 		&user.Email,
+		&user.PasswordHash,
 		&user.Role,
 		&user.Provider,
 		&user.ProviderID,
@@ -117,6 +118,7 @@ func (s *AuthService) Login(userInput dto.UserLogin) (string, error) {
 	}
 
 	if existingUser.PasswordHash == nil {
+		log.Println("invalid login method")
 		return "", errors.New("invalid login method")
 	}
 

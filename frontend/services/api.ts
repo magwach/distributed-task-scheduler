@@ -169,16 +169,20 @@ export async function fetchUser(): Promise<User> {
 
 export async function login(form: Login): Promise<User> {
   try {
-    const res = await fetch(`${API_BASE_URL}/auth/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+    const res = await fetch(
+      `${API_BASE_URL!.replace("/api/v1", "")}/auth/login`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(form),
       },
-      credentials: "include",
-      body: JSON.stringify(form),
-    });
+    );
 
     if (!res.ok) {
+      console.log(res)
       throw new Error("Failed to login");
     }
 
@@ -186,21 +190,24 @@ export async function login(form: Login): Promise<User> {
 
     return data;
   } catch (error) {
-    console.error("Failed to login");
+    console.error("Failed to login", error);
     throw new Error("Failed to login");
   }
 }
 
 export async function register(form: Register): Promise<User> {
   try {
-    const res = await fetch(`${API_BASE_URL}/auth/register`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+    const res = await fetch(
+      `${API_BASE_URL!.replace("/api/v1", "")}/auth/register`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(form),
       },
-      credentials: "include",
-      body: JSON.stringify(form),
-    });
+    );
 
     if (!res.ok) {
       throw new Error("Failed to create account.");
