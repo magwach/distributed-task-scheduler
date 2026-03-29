@@ -113,7 +113,7 @@ func (s *AuthService) Login(userInput dto.UserLogin) (string, error) {
 
 	if err != nil {
 		log.Println("Failed to get user: ", err)
-		return "", errors.New("user not found")
+		return "", errors.New("invalid credentials")
 	}
 
 	if existingUser.PasswordHash == nil {
@@ -124,7 +124,7 @@ func (s *AuthService) Login(userInput dto.UserLogin) (string, error) {
 
 	if !isPasswordSame {
 		log.Println("Incorrect password")
-		return "", errors.New("incorrect password or email")
+		return "", errors.New("invalid credentials")
 	}
 
 	token, err := auth.GenerateToken(existingUser.ID, existingUser.Email, existingUser.Role)

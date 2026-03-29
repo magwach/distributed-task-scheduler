@@ -19,7 +19,7 @@ func NewAuthRoutes(app fiber.Router, db *pgxpool.Pool) *AuthRoutesImpl {
 	}
 }
 
-func (r *TaskRoutesImpl) AuthRoutes() {
+func (r *AuthRoutesImpl) AuthRoutes() {
 	authService := services.NewAuthService(r.DB)
 
 	authHandlers := handlers.NewAuthHandler(&authService)
@@ -27,9 +27,8 @@ func (r *TaskRoutesImpl) AuthRoutes() {
 	r.App.Post("/auth/register", authHandlers.Register)
 	r.App.Post("/auth/login", authHandlers.Login)
 	r.App.Post("/auth/refresh", authHandlers.Refresh)
-	r.App.Get("/auth/google", handleIt)
-	r.App.Get("/auth/google/callback", handleIt)
-	r.App.Get("/auth/github", handleIt)
-	r.App.Get("/auth/github/callback", handleIt)
-
+	r.App.Get("/auth/google", authHandlers.GoogleLogin)
+	r.App.Get("/auth/google/callback", authHandlers.GoogleCallback)
+	r.App.Get("/auth/github", authHandlers.GitHubLogin)
+	r.App.Get("/auth/github/callback", authHandlers.GitHubCallback)
 }

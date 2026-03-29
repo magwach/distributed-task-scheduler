@@ -9,6 +9,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/joho/godotenv"
+	"github.com/magwach/distributed-task-scheduler/backend/internal/auth"
 	"github.com/magwach/distributed-task-scheduler/backend/internal/db"
 	"github.com/magwach/distributed-task-scheduler/backend/internal/models"
 	"github.com/magwach/distributed-task-scheduler/backend/internal/queue"
@@ -67,13 +68,11 @@ func main() {
 
 	app.Use(c)
 
-	v1Routes := app.Group("/api/v1")
-
-	v1Routes.Get("/health", func(c *fiber.Ctx) error {
+	app.Get("/health", func(c *fiber.Ctx) error {
 		return c.SendString("OK")
 	})
 
-	taskRoutes := routes.NewTaskRoutes(v1Routes, pool)
+	v1Routes := app.Group("/api/v1", auth.AuthMiddleware)
 
 	queue.InitRedis(redisUrl)
 
@@ -93,10 +92,13 @@ func main() {
 		}
 	}()
 
-	websocketRoutes := routes.NewWebSocketRoutes(app, hub)
+	websocketRoutes := routes.NewWebSocketRoutes(v1Routes, hub)
+	taskRoutes := routes.NewTaskRoutes(v1Routes, pool)
+	authRoutes := routes.NewAuthRoutes(app, pool)
 
 	taskRoutes.TaskRoutes()
 	websocketRoutes.WebSocketRoutes()
+	authRoutes.AuthRoutes()
 
 	if err = app.Listen(":" + port); err != nil {
 		log.Fatalf("Error starting server: %v", err)

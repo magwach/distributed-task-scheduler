@@ -18,7 +18,7 @@ export const useWebSocket = ({
       const protocol = window.location.protocol === "https:" ? "wss" : "ws";
       const host =
         process.env.NEXT_PUBLIC_WEB_SOCKET_URL ?? window.location.host;
-      const webSocketUrl = `${protocol}://${host}/ws`;
+      const webSocketUrl = `${protocol}://${host}/api/v1/ws`;
 
       const socket = new WebSocket(webSocketUrl);
       socketRef.current = socket;

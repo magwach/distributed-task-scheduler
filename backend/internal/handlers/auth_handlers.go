@@ -2,9 +2,12 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/magwach/distributed-task-scheduler/backend/internal/auth"
 	"github.com/magwach/distributed-task-scheduler/backend/internal/dto"
+	"github.com/magwach/distributed-task-scheduler/backend/internal/queue"
 	"github.com/magwach/distributed-task-scheduler/backend/internal/services"
 )
 
@@ -80,4 +83,118 @@ func (h *AuthHandlerImpl) Login(c *fiber.Ctx) error {
 
 func (h *AuthHandlerImpl) Refresh(c *fiber.Ctx) error {
 	return nil
+}
+
+func (h *AuthHandlerImpl) GoogleLogin(c *fiber.Ctx) error {
+	state, err := auth.GenerateState()
+	if err != nil {
+		return c.Status(500).JSON(&fiber.Map{
+			"error": "failed to generate state",
+		})
+	}
+
+	err = auth.StoreState(queue.RedisClient, state)
+	if err != nil {
+		return c.Status(500).JSON(&fiber.Map{
+			"error": "failed to store state",
+		})
+	}
+
+	url := auth.GetGoogleAuthUrl(state)
+
+	return c.Redirect(url)
+}
+
+func (h *AuthHandlerImpl) GoogleCallback(c *fiber.Ctx) error {
+	state := c.Query("state")
+	code := c.Query("code")
+
+	if state == "" || code == "" {
+		return c.Status(400).JSON(fiber.Map{"error": "missing state or code"})
+	}
+
+	valid, err := auth.ValidateState(queue.RedisClient, state)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "state validation failed"})
+	}
+
+	if !valid {
+		return c.Status(401).JSON(fiber.Map{"error": "invalid or expired state"})
+	}
+
+	user, err := auth.ExchangeGoogleCode(code)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "oauth failed"})
+	}
+
+	newUser, err := h.Service.GetOrCreateOAuthUser(user.Email, user.Name, user.Picture, "google", user.ID)
+
+	if err != nil {
+		return c.Status(http.StatusInternalServerError).JSON(&fiber.Map{
+			"error":   err.Error(),
+			"message": "Failed to login",
+		})
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(&fiber.Map{
+		"message": "User registered successfully",
+		"data":    newUser,
+	})
+}
+
+func (h *AuthHandlerImpl) GitHubLogin(c *fiber.Ctx) error {
+	state, err := auth.GenerateState()
+	if err != nil {
+		return c.Status(500).JSON(&fiber.Map{
+			"error": "failed to generate state",
+		})
+	}
+
+	err = auth.StoreState(queue.RedisClient, state)
+	if err != nil {
+		return c.Status(500).JSON(&fiber.Map{
+			"error": "failed to store state",
+		})
+	}
+
+	url := auth.GetGithubAuthURL(state)
+
+	return c.Redirect(url)
+}
+
+func (h *AuthHandlerImpl) GitHubCallback(c *fiber.Ctx) error {
+	state := c.Query("state")
+	code := c.Query("code")
+
+	if state == "" || code == "" {
+		return c.Status(400).JSON(fiber.Map{"error": "missing state or code"})
+	}
+
+	valid, err := auth.ValidateState(queue.RedisClient, state)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "state validation failed"})
+	}
+
+	if !valid {
+		return c.Status(401).JSON(fiber.Map{"error": "invalid or expired state"})
+	}
+
+	user, err := auth.ExchangeGithubCode(code)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "oauth failed"})
+	}
+
+	newUser, err := h.Service.GetOrCreateOAuthUser(user.Email, user.Name, user.AvatarURL, "github", strconv.Itoa(user.ID))
+
+	if err != nil {
+		return c.Status(http.StatusInternalServerError).JSON(&fiber.Map{
+			"error":   err.Error(),
+			"message": "Failed to login",
+		})
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(&fiber.Map{
+		"message": "User registered successfully",
+		"data":    newUser,
+	})
 }
