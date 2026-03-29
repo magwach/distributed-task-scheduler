@@ -50,3 +50,18 @@ export type NewTask = {
   schedule: string;
   description?: string;
 };
+
+export type User = {
+  user_id: string;
+  email: string;
+  role: string;
+};
+
+export type Login = {
+  email: string;
+  password: string;
+};
+
+export type Register = {
+  name: string;
+} & Login;

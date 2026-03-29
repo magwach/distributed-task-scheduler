@@ -2,7 +2,9 @@ package handlers
 
 import (
 	"net/http"
+	"os"
 	"strconv"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/magwach/distributed-task-scheduler/backend/internal/auth"
@@ -76,8 +78,18 @@ func (h *AuthHandlerImpl) Login(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(&fiber.Map{
-		"token": token,
+	c.Cookie(&fiber.Cookie{
+		Name:     "auth_token",
+		Value:    token,
+		HTTPOnly: true,
+		Secure:   true,
+		SameSite: "Strict",
+		Path:     "/",
+		Expires:  time.Now().Add(24 * time.Hour),
+	})
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "Logged in successfully",
 	})
 }
 
@@ -136,10 +148,27 @@ func (h *AuthHandlerImpl) GoogleCallback(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(&fiber.Map{
-		"message": "User registered successfully",
-		"data":    newUser,
+	token, err := auth.GenerateToken(newUser.ID, newUser.Email, newUser.Role)
+
+	if err != nil {
+		return c.Status(500).JSON(&fiber.Map{
+			"error": "failed to generate token",
+		})
+	}
+
+	production := os.Getenv("ENVIROMENT") == "prod"
+
+	c.Cookie(&fiber.Cookie{
+		Name:     "auth_token",
+		Value:    token,
+		HTTPOnly: true,
+		Secure:   production,
+		SameSite: "Lax",
+		Path:     "/",
+		Expires:  time.Now().Add(24 * time.Hour),
 	})
+
+	return c.Redirect("http://localhost:3000/dashboard", fiber.StatusTemporaryRedirect)
 }
 
 func (h *AuthHandlerImpl) GitHubLogin(c *fiber.Ctx) error {
@@ -193,8 +222,25 @@ func (h *AuthHandlerImpl) GitHubCallback(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(&fiber.Map{
-		"message": "User registered successfully",
-		"data":    newUser,
+	token, err := auth.GenerateToken(newUser.ID, newUser.Email, newUser.Role)
+
+	if err != nil {
+		return c.Status(500).JSON(&fiber.Map{
+			"error": "failed to generate token",
+		})
+	}
+
+	production := os.Getenv("ENVIROMENT") == "prod"
+
+	c.Cookie(&fiber.Cookie{
+		Name:     "auth_token",
+		Value:    token,
+		HTTPOnly: true,
+		Secure:   production,
+		SameSite: "Lax",
+		Path:     "/",
+		Expires:  time.Now().Add(24 * time.Hour),
 	})
+
+	return c.Redirect("http://localhost:3000/dashboard", fiber.StatusTemporaryRedirect)
 }

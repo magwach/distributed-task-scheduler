@@ -1,32 +1,19 @@
 package auth
 
 import (
-	"strings"
-
 	"github.com/gofiber/fiber/v2"
 )
 
 func AuthMiddleware(c *fiber.Ctx) error {
 
-	authHeader := c.Get("Authorization")
-
-	if authHeader == "" {
+	cookie := c.Cookies("auth_token")
+	if cookie == "" {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": "missing authorization header",
+			"error": "Unauthorized",
 		})
 	}
 
-	parts := strings.Split(authHeader, " ")
-
-	if len(parts) != 2 || parts[0] != "Bearer" {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": "invalid authorization format",
-		})
-	}
-
-	tokenString := parts[1]
-
-	claims, err := ValidateToken(tokenString)
+	claims, err := ValidateToken(cookie)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": "invalid or expired token",

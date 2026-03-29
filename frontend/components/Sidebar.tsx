@@ -1,32 +1,36 @@
-'use client'
+"use client";
 
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useUser } from "./ProtectedRoute";
 
 const navItems = [
   {
-    section: 'Overview',
+    section: "Overview",
+    links: [{ href: "/dashboard", label: "Dashboard", icon: "⬡" }],
+  },
+  {
+    section: "Tasks",
     links: [
-      { href: '/dashboard', label: 'Dashboard', icon: '⬡' },
+      { href: "/tasks", label: "All Tasks", icon: "◈" },
+      { href: "/tasks/new", label: "Create Task", icon: "+" },
     ],
   },
   {
-    section: 'Tasks',
-    links: [
-      { href: '/tasks', label: 'All Tasks', icon: '◈' },
-      { href: '/tasks/new', label: 'Create Task', icon: '+' },
-    ],
+    section: "System",
+    links: [{ href: "/workers", label: "Workers", icon: "⬡" }],
   },
-  {
-    section: 'System',
-    links: [
-      { href: '/workers', label: 'Workers', icon: '⬡' },
-    ],
-  },
-]
+];
 
 export default function Sidebar() {
-  const pathname = usePathname()
+  const pathname = usePathname();
+
+  const { user } = useUser();
+
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <aside className="sidebar">
@@ -48,9 +52,11 @@ export default function Sidebar() {
               <Link
                 key={link.href}
                 href={link.href}
-                className={`nav-link ${pathname === link.href || pathname.startsWith(link.href + '/') ? 'active' : ''}`}
+                className={`nav-link ${pathname === link.href || pathname.startsWith(link.href + "/") ? "active" : ""}`}
               >
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '14px' }}>
+                <span
+                  style={{ fontFamily: "var(--font-mono)", fontSize: "14px" }}
+                >
                   {link.icon}
                 </span>
                 {link.label}
@@ -67,5 +73,5 @@ export default function Sidebar() {
         </div>
       </div>
     </aside>
-  )
+  );
 }

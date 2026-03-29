@@ -60,9 +60,10 @@ func main() {
 
 	c := cors.New(
 		cors.Config{
-			AllowOrigins: client,
-			AllowHeaders: "Content-Type, Accept, Authorization",
-			AllowMethods: "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+			AllowOrigins:     client,
+			AllowCredentials: true,
+			AllowHeaders:     "Content-Type, Accept, Authorization",
+			AllowMethods:     "GET, POST, PUT, PATCH, DELETE, OPTIONS",
 		},
 	)
 
@@ -95,10 +96,12 @@ func main() {
 	websocketRoutes := routes.NewWebSocketRoutes(v1Routes, hub)
 	taskRoutes := routes.NewTaskRoutes(v1Routes, pool)
 	authRoutes := routes.NewAuthRoutes(app, pool)
+	userRoutes := routes.NewUserRoutes(v1Routes)
 
 	taskRoutes.TaskRoutes()
 	websocketRoutes.WebSocketRoutes()
 	authRoutes.AuthRoutes()
+	userRoutes.UserRoutes()
 
 	if err = app.Listen(":" + port); err != nil {
 		log.Fatalf("Error starting server: %v", err)
