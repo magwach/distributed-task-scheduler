@@ -20,10 +20,10 @@ import (
 
 func main() {
 
-	err := godotenv.Load("../../.env")
+	err := godotenv.Load()
 
 	if err != nil {
-		log.Println("Warning: No env file found")
+		log.Println("No .env file found, using environment variables")
 	}
 
 	redisUrl := os.Getenv("REDIS_ADDR")
