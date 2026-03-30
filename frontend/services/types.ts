@@ -11,6 +11,7 @@ export type Task = {
   max_retries: number;
   retry_count: number;
   retry_delay_seconds: number;
+  priority: string;
   executions?: TaskExecution[];
 };
 
@@ -48,6 +49,7 @@ export type TaskLog = {
 export type NewTask = {
   title: string;
   schedule: string;
+  priority: string;
   description?: string;
 };
 

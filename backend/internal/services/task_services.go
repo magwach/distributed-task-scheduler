@@ -28,8 +28,8 @@ func (s *TaskService) CreateTask(taskInput dto.CreateTaskRequest) (*models.Task,
 	task := models.Task{}
 
 	query := `
-	INSERT INTO tasks (title, description, schedule, next_run_at)
-	VALUES ($1, $2, $3, $4)
+	INSERT INTO tasks (title, description, schedule, next_run_at, priority)
+	VALUES ($1, $2, $3, $4, $5)
 	RETURNING id, title, description, schedule, status, created_at, updated_at
 	`
 
@@ -46,6 +46,7 @@ func (s *TaskService) CreateTask(taskInput dto.CreateTaskRequest) (*models.Task,
 		taskInput.Description,
 		taskInput.Schedule,
 		nextRun,
+		taskInput.Priority,
 	).Scan(
 		&task.ID,
 		&task.Title,
@@ -67,7 +68,7 @@ func (s *TaskService) GetTasks() ([]models.Task, error) {
 	tasks := []models.Task{}
 
 	query := `
-	SELECT id, title, description, schedule, status, created_at, updated_at
+	SELECT id, title, description, schedule, status, created_at, updated_at, priority
 	FROM tasks
 	`
 	rows, err := s.DB.Query(context.Background(), query)
@@ -87,6 +88,7 @@ func (s *TaskService) GetTasks() ([]models.Task, error) {
 			&task.Status,
 			&task.CreatedAt,
 			&task.UpdatedAt,
+			&task.Priority,
 		)
 
 		if err != nil {
@@ -108,7 +110,7 @@ func (s *TaskService) GetTask(id uuid.UUID) (*models.Task, error) {
 	executions := []models.TaskExecution{}
 
 	getTaskQuery := `
-	SELECT id, title, description, schedule, status, created_at, updated_at, next_run_at, last_run_at, max_retries, retry_count, retry_delay_seconds 
+	SELECT id, title, description, schedule, status, created_at, updated_at, next_run_at, last_run_at, max_retries, retry_count, retry_delay_seconds, priority 
 	FROM tasks
 	WHERE id = $1
 	`
@@ -141,6 +143,7 @@ func (s *TaskService) GetTask(id uuid.UUID) (*models.Task, error) {
 		&task.MaxRetries,
 		&task.RetryCount,
 		&task.RetryDelaySeconds,
+		&task.Priority,
 	)
 
 	if err != nil {

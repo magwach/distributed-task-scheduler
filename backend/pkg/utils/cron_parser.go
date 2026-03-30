@@ -22,3 +22,16 @@ func ParseCron(schedule string) (time.Time, error) {
 
 	return cronSchedule.Next(time.Now()), nil
 }
+
+func PriorityScores(priority string) (int, error) {
+	switch priority {
+	case "low":
+		return 1, nil
+	case "normal":
+		return 2, nil
+	case "high":
+		return 3, nil
+	default:
+		return 0, errors.New("invalid priority")
+	}
+}

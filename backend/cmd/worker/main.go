@@ -117,7 +117,9 @@ func main() {
 			&task.LastRunAt,
 			&task.MaxRetries,
 			&task.RetryCount,
-			&task.RetryDelaySeconds)
+			&task.RetryDelaySeconds,
+			&task.Priority,
+		)
 
 		if err != nil {
 			log.Println("Failed to fetch task details for ID:", taskId, " error: ", err)

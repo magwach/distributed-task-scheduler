@@ -14,9 +14,44 @@ const CRON_EXAMPLES = [
   { label: "Every Monday", value: "0 9 * * 1" },
 ];
 
+const PRIORITIES = [
+  {
+    value: "low",
+    label: "Low",
+    description: "Runs after normal and high priority tasks",
+    color: "var(--text-secondary)",
+    bg: "var(--bg-secondary)",
+    border: "var(--border)",
+    activeBorder: "rgba(107,107,138,0.4)",
+  },
+  {
+    value: "normal",
+    label: "Normal",
+    description: "Default priority for most tasks",
+    color: "var(--accent-cyan)",
+    bg: "var(--accent-cyan-dim)",
+    border: "var(--border)",
+    activeBorder: "rgba(0,212,255,0.3)",
+  },
+  {
+    value: "high",
+    label: "High",
+    description: "Runs before all other tasks",
+    color: "var(--status-pending)",
+    bg: "var(--status-pending-bg)",
+    border: "var(--border)",
+    activeBorder: "rgba(245,158,11,0.3)",
+  },
+];
+
 export default function CreateTaskPage() {
   const router = useRouter();
-  const [form, setForm] = useState({ name: "", description: "", schedule: "" });
+  const [form, setForm] = useState({
+    name: "",
+    description: "",
+    schedule: "",
+    priority: "normal",
+  });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
@@ -37,10 +72,9 @@ export default function CreateTaskPage() {
   function isValidCron(cron: string): boolean {
     const parts = cron.trim().split(/\s+/);
 
-    // Must have exactly 5 parts
     if (parts.length !== 5) return false;
 
-    const cronPart = /^(\*|\d+|\d+-\d+|\*\/\d+|\d+(,\d+)*)$/; // basic support
+    const cronPart = /^(\*|\d+|\d+-\d+|\*\/\d+|\d+(,\d+)*)$/;
 
     return parts.every((part) => cronPart.test(part));
   }
@@ -58,6 +92,7 @@ export default function CreateTaskPage() {
         title: form.name.trim(),
         description: form.description.trim() || undefined,
         schedule: form.schedule.trim(),
+        priority: form.priority,
       });
       toast.success("Task created successfully.");
       router.push("/dashboard");
@@ -169,6 +204,75 @@ export default function CreateTaskPage() {
                   {ex.label} — <span style={{ opacity: 0.7 }}>{ex.value}</span>
                 </button>
               ))}
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Priority</label>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(3, 1fr)",
+                gap: 10,
+              }}
+            >
+              {PRIORITIES.map((p) => {
+                const isSelected = form.priority === p.value;
+                return (
+                  <button
+                    key={p.value}
+                    type="button"
+                    onClick={() => handleChange("priority", p.value)}
+                    style={{
+                      background: isSelected ? p.bg : "var(--bg-secondary)",
+                      border: `1px solid ${isSelected ? p.activeBorder : "var(--border)"}`,
+                      borderRadius: "var(--radius-sm)",
+                      padding: "12px 14px",
+                      cursor: "pointer",
+                      transition: "all var(--transition)",
+                      textAlign: "left",
+                      position: "relative",
+                      outline: "none",
+                    }}
+                  >
+                    {isSelected && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: 8,
+                          right: 8,
+                          width: 6,
+                          height: 6,
+                          borderRadius: "50%",
+                          background: p.color,
+                          boxShadow: `0 0 6px ${p.color}`,
+                        }}
+                      />
+                    )}
+                    <div
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 700,
+                        color: isSelected ? p.color : "var(--text-primary)",
+                        marginBottom: 4,
+                        fontFamily: "var(--font-display)",
+                      }}
+                    >
+                      {p.label}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        fontFamily: "var(--font-mono)",
+                        color: "var(--text-muted)",
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      {p.description}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
 

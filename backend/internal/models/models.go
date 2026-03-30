@@ -17,6 +17,7 @@ type Task struct {
 	MaxRetries        int             `json:"max_retries"`
 	RetryCount        int             `json:"retry_count"`
 	RetryDelaySeconds int             `json:"retry_delay_seconds"`
+	Priority          string          `json:"priority"`
 	Executions        []TaskExecution `json:"executions"`
 }
 

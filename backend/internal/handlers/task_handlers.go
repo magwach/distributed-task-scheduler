@@ -41,6 +41,12 @@ func (h *TaskHandlerImpl) CreateTask(c *fiber.Ctx) error {
 		})
 	}
 
+	if task.Priority == "" {
+		return c.Status(http.StatusBadRequest).JSON(&fiber.Map{
+			"error": "Please provide a priority",
+		})
+	}
+
 	newTask, err := h.Service.CreateTask(task)
 
 	if err != nil {

@@ -2,9 +2,11 @@ package queue
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 
+	"github.com/magwach/distributed-task-scheduler/backend/pkg/utils"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -30,9 +32,18 @@ func InitRedis(redisUrl string) {
 
 }
 
-func Enqueue(taskID string) error {
+func Enqueue(taskID, taskPriority string) error {
 
-	err := RedisClient.LPush(Ctx, TaskQueueKey, taskID).Err()
+	score, err := utils.PriorityScores(taskPriority)
+
+	if err != nil {
+		return err
+	}
+
+	err = RedisClient.ZAdd(context.Background(), "task:queue", redis.Z{
+		Score:  float64(score),
+		Member: taskID,
+	}).Err()
 
 	if err != nil {
 		log.Println("Failed to set the value: ", err)
@@ -45,13 +56,16 @@ func Enqueue(taskID string) error {
 
 func Dequeue(timeout time.Duration) (string, error) {
 
-	result, err := RedisClient.BRPop(Ctx, timeout, TaskQueueKey).Result()
+	result, err := RedisClient.BZPopMax(Ctx, timeout, TaskQueueKey).Result()
 
 	if err != nil {
 		return "", err
 	}
 
-	taskId := result[1]
+	taskId, ok := result.Member.(string)
+	if !ok {
+		return "", fmt.Errorf("failed to cast task ID")
+	}
 
 	return taskId, nil
 }

@@ -59,6 +59,7 @@ func (s *schedulerService) ProcessPendingTasks() {
 			&task.MaxRetries,
 			&task.RetryCount,
 			&task.RetryDelaySeconds,
+			&task.Priority,
 		)
 
 		if err != nil {
@@ -119,7 +120,7 @@ func (s *schedulerService) ProcessPendingTasks() {
 				return
 			}
 
-			err = queue.Enqueue(t.ID)
+			err = queue.Enqueue(t.ID, t.Priority)
 
 			if err != nil {
 				log.Println("Failed to add the task: ", t.Title, " to redis.")
