@@ -182,7 +182,7 @@ export async function login(form: Login): Promise<User> {
     );
 
     if (!res.ok) {
-      console.log(res)
+      console.log(res);
       throw new Error("Failed to login");
     }
 
@@ -219,5 +219,28 @@ export async function register(form: Register): Promise<User> {
   } catch (error) {
     console.error("Failed to create account.");
     throw new Error("Failed to create account.");
+  }
+}
+
+export async function logout() {
+  try {
+    const res = await fetch(
+      `${API_BASE_URL!.replace("/api/v1", "")}/auth/logout`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      },
+    );
+
+    if (!res.ok) {
+      throw new Error("Failed to logout.");
+    }
+    return;
+  } catch (error) {
+    console.error("Failed to logout.");
+    throw new Error("Failed to logout.");
   }
 }

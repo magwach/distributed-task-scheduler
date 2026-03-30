@@ -27,6 +27,7 @@ func (r *AuthRoutesImpl) AuthRoutes() {
 	r.App.Post("/auth/register", authHandlers.Register)
 	r.App.Post("/auth/login", authHandlers.Login)
 	r.App.Post("/auth/refresh", authHandlers.Refresh)
+	r.App.Post("/auth/logout", authHandlers.Logout)
 	r.App.Get("/auth/google", authHandlers.GoogleLogin)
 	r.App.Get("/auth/google/callback", authHandlers.GoogleCallback)
 	r.App.Get("/auth/github", authHandlers.GitHubLogin)

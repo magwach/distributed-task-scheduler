@@ -27,20 +27,22 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
 
-  useEffect(() => {
-    async function checkAuth() {
-      try {
-        const data = await fetchUser();
-        setUser(data);
-      } catch {
-        router.replace("/login");
-      } finally {
-        setLoading(false);
-      }
+  const checkAuth = async () => {
+    setLoading(true);
+    try {
+      const data = await fetchUser();
+      setUser(data);
+    } catch {
+      setUser(null);
+      router.replace("/login");
+    } finally {
+      setLoading(false);
     }
+  };
 
+  useEffect(() => {
     checkAuth();
-  }, [router]);
+  }, []);
 
   if (loading) {
     return (

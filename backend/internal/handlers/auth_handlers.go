@@ -99,6 +99,22 @@ func (h *AuthHandlerImpl) Refresh(c *fiber.Ctx) error {
 	return nil
 }
 
+func (h *AuthHandlerImpl) Logout(c *fiber.Ctx) error {
+	c.Cookie(&fiber.Cookie{
+		Name:     "auth_token",
+		Value:    "",
+		Path:     "/",
+		HTTPOnly: true,
+		Secure:   true,
+		SameSite: "Strict",
+		Expires:  time.Now().Add(-time.Hour),
+	})
+
+	return c.JSON(fiber.Map{
+		"message": "Logged out successfully",
+	})
+}
+
 func (h *AuthHandlerImpl) GoogleLogin(c *fiber.Ctx) error {
 	state, err := auth.GenerateState()
 	if err != nil {
@@ -212,6 +228,7 @@ func (h *AuthHandlerImpl) GitHubCallback(c *fiber.Ctx) error {
 
 	user, err := auth.ExchangeGithubCode(code)
 	if err != nil {
+		log.Println("Error during OAuth, :", err)
 		return c.Status(500).JSON(fiber.Map{"error": "oauth failed"})
 	}
 
