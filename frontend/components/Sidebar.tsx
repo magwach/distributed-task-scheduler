@@ -43,8 +43,6 @@ export default function Sidebar() {
     }
   };
 
-  const initials = user?.email ? user.email.slice(0, 2).toUpperCase() : "??";
-
   if (!user) {
     return null;
   }
@@ -88,7 +86,6 @@ export default function Sidebar() {
       </nav>
 
       <div className="sidebar-footer">
-        {/* User info */}
         {user && (
           <div
             style={{
@@ -105,6 +102,8 @@ export default function Sidebar() {
                 width: 32,
                 height: 32,
                 borderRadius: "50%",
+                overflow: "hidden",
+                flexShrink: 0,
                 background:
                   "linear-gradient(135deg, var(--accent-cyan), var(--accent-purple))",
                 display: "flex",
@@ -113,10 +112,20 @@ export default function Sidebar() {
                 fontSize: 11,
                 fontWeight: 700,
                 color: "#fff",
-                flexShrink: 0,
               }}
             >
-              {initials}
+              <img
+                src={user?.avatar_url || "/avatar.jpg"}
+                alt="avatar"
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                }}
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src = "/avatar.avif";
+                }}
+              />
             </div>
             <div style={{ overflow: "hidden", flex: 1 }}>
               <div

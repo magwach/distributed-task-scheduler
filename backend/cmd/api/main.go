@@ -96,7 +96,7 @@ func main() {
 	websocketRoutes := routes.NewWebSocketRoutes(v1Routes, hub)
 	taskRoutes := routes.NewTaskRoutes(v1Routes, pool)
 	authRoutes := routes.NewAuthRoutes(app, pool)
-	userRoutes := routes.NewUserRoutes(v1Routes)
+	userRoutes := routes.NewUserRoutes(v1Routes, pool)
 
 	taskRoutes.TaskRoutes()
 	websocketRoutes.WebSocketRoutes()
