@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -136,6 +137,7 @@ func (h *AuthHandlerImpl) GoogleLogin(c *fiber.Ctx) error {
 }
 
 func (h *AuthHandlerImpl) GoogleCallback(c *fiber.Ctx) error {
+	url := strings.TrimRight(os.Getenv("CLIENT_URL"), "/") + "/dashboard"
 	state := c.Query("state")
 	code := c.Query("code")
 
@@ -174,7 +176,7 @@ func (h *AuthHandlerImpl) GoogleCallback(c *fiber.Ctx) error {
 		})
 	}
 
-	production := os.Getenv("ENVIROMENT") == "prod"
+	production := os.Getenv("ENVIRONMENT") == "prod"
 
 	c.Cookie(&fiber.Cookie{
 		Name:     "auth_token",
@@ -186,7 +188,7 @@ func (h *AuthHandlerImpl) GoogleCallback(c *fiber.Ctx) error {
 		Expires:  time.Now().Add(24 * time.Hour),
 	})
 
-	return c.Redirect("http://localhost:3000/dashboard", fiber.StatusTemporaryRedirect)
+	return c.Redirect(url, fiber.StatusTemporaryRedirect)
 }
 
 func (h *AuthHandlerImpl) GitHubLogin(c *fiber.Ctx) error {
@@ -210,6 +212,7 @@ func (h *AuthHandlerImpl) GitHubLogin(c *fiber.Ctx) error {
 }
 
 func (h *AuthHandlerImpl) GitHubCallback(c *fiber.Ctx) error {
+	url := strings.TrimRight(os.Getenv("CLIENT_URL"), "/") + "/dashboard"
 	state := c.Query("state")
 	code := c.Query("code")
 
@@ -249,7 +252,7 @@ func (h *AuthHandlerImpl) GitHubCallback(c *fiber.Ctx) error {
 		})
 	}
 
-	production := os.Getenv("ENVIROMENT") == "prod"
+	production := os.Getenv("ENVIRONMENT") == "prod"
 
 	c.Cookie(&fiber.Cookie{
 		Name:     "auth_token",
@@ -261,5 +264,5 @@ func (h *AuthHandlerImpl) GitHubCallback(c *fiber.Ctx) error {
 		Expires:  time.Now().Add(24 * time.Hour),
 	})
 
-	return c.Redirect("http://localhost:3000/dashboard", fiber.StatusTemporaryRedirect)
+	return c.Redirect(url, fiber.StatusTemporaryRedirect)
 }

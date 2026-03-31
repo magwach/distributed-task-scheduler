@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"net/http"
 	"os"
 	"time"
 
@@ -51,6 +52,19 @@ func main() {
 		}
 
 	}()
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Scheduler service running"))
+	})
+
+	log.Printf("Starting dummy web server on port %s", port)
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 
 	select {}
 

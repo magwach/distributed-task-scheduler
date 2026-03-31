@@ -13,6 +13,7 @@ export default function Home() {
     if (user === null) {
       router.replace("/login");
     }
+    router.replace("/dashboard");
   }, [user, router]);
 
   if (!user) return null;

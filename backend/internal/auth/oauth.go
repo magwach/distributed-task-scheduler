@@ -122,7 +122,7 @@ func ExchangeGithubCode(code string) (*GithubUser, error) {
 	data.Set("client_id", os.Getenv("GITHUB_CLIENT_ID"))
 	data.Set("client_secret", os.Getenv("GITHUB_CLIENT_SECRET"))
 	data.Set("code", code)
-	data.Set("redirect_uri", os.Getenv("GITHUB_REDIRECT_URI"))
+	data.Set("redirect_uri", os.Getenv("GITHUB_REDIRECT_URL"))
 
 	req, err := http.NewRequest("POST", tokenURL, bytes.NewBufferString(data.Encode()))
 	if err != nil {

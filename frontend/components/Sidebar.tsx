@@ -14,14 +14,7 @@ const navItems = [
   },
   {
     section: "Tasks",
-    links: [
-      { href: "/tasks", label: "All Tasks", icon: "◈" },
-      { href: "/tasks/new", label: "Create Task", icon: "+" },
-    ],
-  },
-  {
-    section: "System",
-    links: [{ href: "/workers", label: "Workers", icon: "⬡" }],
+    links: [{ href: "/tasks/new", label: "Create Task", icon: "+" }],
   },
 ];
 

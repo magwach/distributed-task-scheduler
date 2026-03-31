@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"time"
 
@@ -90,206 +91,221 @@ func main() {
 	LIMIT 1
 	`
 
-	for {
-		task := models.Task{}
-		taskId, err := queue.Dequeue(2 * time.Second)
+	go func() {
+		for {
+			task := models.Task{}
+			taskId, err := queue.Dequeue(2 * time.Second)
 
-		if err != nil {
-			if err == redis.Nil {
+			if err != nil {
+				if err == redis.Nil {
+					continue
+				}
+				log.Println("Redis error:", err)
 				continue
 			}
-			log.Println("Redis error:", err)
-			continue
-		}
 
-		err = DB.QueryRow(context.Background(),
-			getTaskDetailsQuery,
-			taskId,
-		).Scan(
-			&task.ID,
-			&task.Title,
-			&task.Description,
-			&task.Schedule,
-			&task.Status,
-			&task.CreatedAt,
-			&task.UpdatedAt,
-			&task.NextRunAt,
-			&task.LastRunAt,
-			&task.MaxRetries,
-			&task.RetryCount,
-			&task.RetryDelaySeconds,
-			&task.Priority,
-		)
-
-		if err != nil {
-			log.Println("Failed to fetch task details for ID:", taskId, " error: ", err)
-			continue
-		}
-
-		go func(task models.Task) {
-
-			var taskExcecutionId string
-			var nextRunAt time.Time
-
-			err := DB.QueryRow(context.Background(),
-				getExcecutionIdQuery,
-				task.ID,
+			err = DB.QueryRow(context.Background(),
+				getTaskDetailsQuery,
+				taskId,
 			).Scan(
-				&taskExcecutionId,
+				&task.ID,
+				&task.Title,
+				&task.Description,
+				&task.Schedule,
+				&task.Status,
+				&task.CreatedAt,
+				&task.UpdatedAt,
+				&task.NextRunAt,
+				&task.LastRunAt,
+				&task.MaxRetries,
+				&task.RetryCount,
+				&task.RetryDelaySeconds,
+				&task.Priority,
 			)
 
 			if err != nil {
-				log.Println("Failed to get task excecutin Id for task: ", task.ID)
-				return
+				log.Println("Failed to fetch task details for ID:", taskId, " error: ", err)
+				continue
 			}
 
-			err = services.WriteLog(context.Background(), DB, taskExcecutionId, "info", fmt.Sprintf("Worker picked up task %v (id: %v)", task.Title, task.ID))
+			go func(task models.Task) {
 
-			if err != nil {
-				return
-			}
+				var taskExcecutionId string
+				var nextRunAt time.Time
 
-			startTime, workerErr := services.WorkerFunction(task, context.Background(), DB, taskExcecutionId)
+				err := DB.QueryRow(context.Background(),
+					getExcecutionIdQuery,
+					task.ID,
+				).Scan(
+					&taskExcecutionId,
+				)
 
-			if workerErr != nil {
-				if task.RetryCount < task.MaxRetries {
+				if err != nil {
+					log.Println("Failed to get task excecutin Id for task: ", task.ID)
+					return
+				}
 
-					retryDelaySeconds := retry.Delay(task.RetryDelaySeconds, task.RetryCount)
+				err = services.WriteLog(context.Background(), DB, taskExcecutionId, "info", fmt.Sprintf("Worker picked up task %v (id: %v)", task.Title, task.ID))
 
-					delay := time.Now().Add(time.Duration(retryDelaySeconds) * time.Second)
+				if err != nil {
+					return
+				}
+
+				startTime, workerErr := services.WorkerFunction(task, context.Background(), DB, taskExcecutionId)
+
+				if workerErr != nil {
+					if task.RetryCount < task.MaxRetries {
+
+						retryDelaySeconds := retry.Delay(task.RetryDelaySeconds, task.RetryCount)
+
+						delay := time.Now().Add(time.Duration(retryDelaySeconds) * time.Second)
+						_, err = DB.Exec(context.Background(),
+							incrementTheRetriesQuery,
+							delay,
+							task.RetryCount+1,
+							retryDelaySeconds,
+							task.ID)
+
+						if err != nil {
+							log.Println("Failed to increment retry count: ", err)
+							return
+						}
+
+						err = services.WriteLog(context.Background(), DB, taskExcecutionId, "warning", fmt.Sprintf("Task failed. Scheduling retry %v/%v in %vs", task.RetryCount+1, task.MaxRetries, retryDelaySeconds))
+
+						if err != nil {
+							return
+						}
+
+						return
+					} else {
+						err = services.WriteLog(context.Background(), DB, taskExcecutionId, "error", fmt.Sprintf("Task permanently failed after %v attempts", task.MaxRetries))
+
+						if err != nil {
+							return
+						}
+					}
+
 					_, err = DB.Exec(context.Background(),
-						incrementTheRetriesQuery,
-						delay,
-						task.RetryCount+1,
-						retryDelaySeconds,
-						task.ID)
-
+						updateTaskExcecutionStatusToFailedQuery,
+						workerErr.Error(),
+						task.ID,
+					)
 					if err != nil {
-						log.Println("Failed to increment retry count: ", err)
+						log.Println("Failed to update task execution:", err)
 						return
 					}
 
-					err = services.WriteLog(context.Background(), DB, taskExcecutionId, "warning", fmt.Sprintf("Task failed. Scheduling retry %v/%v in %vs", task.RetryCount+1, task.MaxRetries, retryDelaySeconds))
+					_, err = DB.Exec(context.Background(),
+						updateTaskStatusToFailedQuery,
+						task.ID,
+					)
+					if err != nil {
+						log.Println("Failed to update task :", err)
+						return
+					}
+
+					errMsg := workerErr.Error()
+
+					updateEvent := models.TaskUpdateEvent{
+						TaskID:       task.ID,
+						Status:       "failed",
+						UpdatedAt:    time.Now(),
+						ExecutionID:  taskExcecutionId,
+						ErrorMessage: &errMsg,
+						RetryCount:   &task.RetryCount,
+						MaxRetries:   &task.MaxRetries,
+						NextRunAt:    &nextRunAt,
+					}
+
+					data, err := json.Marshal(updateEvent)
+
+					if err != nil {
+						log.Println("Failed to parse the message to JSON")
+						return
+					}
+
+					err = queue.GetRedisClient().Publish(context.Background(), "task:updates", data).Err()
+					if err != nil {
+						log.Println("Failed to publish task update:", err)
+					}
+
+					err = services.WriteLog(context.Background(), DB, taskExcecutionId, "error", fmt.Sprintf("Task failed: %v", errMsg))
 
 					if err != nil {
 						return
 					}
 
-					return
 				} else {
-					err = services.WriteLog(context.Background(), DB, taskExcecutionId, "error", fmt.Sprintf("Task permanently failed after %v attempts", task.MaxRetries))
+					_, err = DB.Exec(context.Background(),
+						updateTaskExcecutionStatusToSuccessQuery,
+						task.ID,
+					)
+					if err != nil {
+						log.Println("Failed to update task execution:", err)
+						return
+					}
+
+					nextRunAt, err = utils.ParseCron(task.Schedule)
+
+					if err != nil {
+						log.Println("Failed to parse cron :", err)
+						return
+					}
+
+					_, err = DB.Exec(context.Background(),
+						updateTaskStatusToSuccessQuery,
+						nextRunAt,
+						task.ID,
+					)
+
+					if err != nil {
+						log.Println("Failed to update task :", err)
+						return
+					}
+
+					updateEvent := models.TaskUpdateEvent{
+						TaskID:      task.ID,
+						Status:      "success",
+						UpdatedAt:   time.Now(),
+						ExecutionID: taskExcecutionId,
+						NextRunAt:   &nextRunAt,
+					}
+
+					data, err := json.Marshal(updateEvent)
+
+					if err != nil {
+						log.Println("Failed to parse the message to JSON")
+						return
+					}
+
+					err = queue.GetRedisClient().Publish(context.Background(), "task:updates", data).Err()
+					if err != nil {
+						log.Println("Failed to publish task update:", err)
+					}
+
+					duration := time.Since(startTime)
+					err = services.WriteLog(context.Background(), DB, taskExcecutionId, "info", fmt.Sprintf("Task completed successfully in %v ms", duration.Milliseconds()))
 
 					if err != nil {
 						return
 					}
 				}
+			}(task)
+		}
+	}()
 
-				_, err = DB.Exec(context.Background(),
-					updateTaskExcecutionStatusToFailedQuery,
-					workerErr.Error(),
-					task.ID,
-				)
-				if err != nil {
-					log.Println("Failed to update task execution:", err)
-					return
-				}
-
-				_, err = DB.Exec(context.Background(),
-					updateTaskStatusToFailedQuery,
-					task.ID,
-				)
-				if err != nil {
-					log.Println("Failed to update task :", err)
-					return
-				}
-
-				errMsg := workerErr.Error()
-
-				updateEvent := models.TaskUpdateEvent{
-					TaskID:       task.ID,
-					Status:       "failed",
-					UpdatedAt:    time.Now(),
-					ExecutionID:  taskExcecutionId,
-					ErrorMessage: &errMsg,
-					RetryCount:   &task.RetryCount,
-					MaxRetries:   &task.MaxRetries,
-					NextRunAt:    &nextRunAt,
-				}
-
-				data, err := json.Marshal(updateEvent)
-
-				if err != nil {
-					log.Println("Failed to parse the message to JSON")
-					return
-				}
-
-				err = queue.GetRedisClient().Publish(context.Background(), "task:updates", data).Err()
-				if err != nil {
-					log.Println("Failed to publish task update:", err)
-				}
-
-				err = services.WriteLog(context.Background(), DB, taskExcecutionId, "error", fmt.Sprintf("Task failed: %v", errMsg))
-
-				if err != nil {
-					return
-				}
-
-			} else {
-				_, err = DB.Exec(context.Background(),
-					updateTaskExcecutionStatusToSuccessQuery,
-					task.ID,
-				)
-				if err != nil {
-					log.Println("Failed to update task execution:", err)
-					return
-				}
-
-				nextRunAt, err = utils.ParseCron(task.Schedule)
-
-				if err != nil {
-					log.Println("Failed to parse cron :", err)
-					return
-				}
-
-				_, err = DB.Exec(context.Background(),
-					updateTaskStatusToSuccessQuery,
-					nextRunAt,
-					task.ID,
-				)
-
-				if err != nil {
-					log.Println("Failed to update task :", err)
-					return
-				}
-
-				updateEvent := models.TaskUpdateEvent{
-					TaskID:      task.ID,
-					Status:      "success",
-					UpdatedAt:   time.Now(),
-					ExecutionID: taskExcecutionId,
-					NextRunAt:   &nextRunAt,
-				}
-
-				data, err := json.Marshal(updateEvent)
-
-				if err != nil {
-					log.Println("Failed to parse the message to JSON")
-					return
-				}
-
-				err = queue.GetRedisClient().Publish(context.Background(), "task:updates", data).Err()
-				if err != nil {
-					log.Println("Failed to publish task update:", err)
-				}
-
-				duration := time.Since(startTime)
-				err = services.WriteLog(context.Background(), DB, taskExcecutionId, "info", fmt.Sprintf("Task completed successfully in %v ms", duration.Milliseconds()))
-
-				if err != nil {
-					return
-				}
-			}
-		}(task)
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
 	}
+
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Worker service running"))
+	})
+
+	log.Printf("Starting dummy web server on port %s", port)
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 
 }

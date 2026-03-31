@@ -2,6 +2,7 @@ package queue
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"log"
 	"time"
@@ -17,19 +18,28 @@ var RedisClient *redis.Client
 const TaskQueueKey = "task:queue"
 
 func InitRedis(redisUrl string) {
-
-	RedisClient = redis.NewClient(&redis.Options{
-		Addr: redisUrl,
-	})
-
-	_, err := RedisClient.Ping(Ctx).Result()
-
+	opt, err := redis.ParseURL(redisUrl)
 	if err != nil {
-		log.Fatalf("Failed to connect to redis: %v", err)
+		log.Fatalf("Invalid Redis URL: %v", err)
+	}
+
+	if opt.TLSConfig == nil && len(redisUrl) >= 8 && redisUrl[:8] == "rediss://" {
+		opt.TLSConfig = &tls.Config{
+			MinVersion: tls.VersionTLS12,
+		}
+	}
+
+	RedisClient = redis.NewClient(opt)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err = RedisClient.Ping(ctx).Result()
+	if err != nil {
+		log.Fatalf("Failed to connect to Redis: %v", err)
 	}
 
 	log.Println("Connected to Redis")
-
 }
 
 func Enqueue(taskID, taskPriority string) error {
