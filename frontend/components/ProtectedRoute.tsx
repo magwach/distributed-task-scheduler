@@ -42,7 +42,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   useEffect(() => {
     checkAuth();
-  }, []);
+  }, [router]);
 
   if (loading) {
     return (
