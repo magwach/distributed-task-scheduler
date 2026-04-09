@@ -76,7 +76,7 @@ func Dequeue(timeout time.Duration) (string, error) {
 	if !ok {
 		return "", fmt.Errorf("failed to cast task ID")
 	}
-
+	
 	return taskId, nil
 }
 
