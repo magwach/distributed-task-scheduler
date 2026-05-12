@@ -112,7 +112,7 @@ jobs:
             "https://api.render.com/v1/services/${{ secrets.RENDER_API_ID_API }}/deploys" \
             -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
             -H "Content-Type: application/json" \
-            --data-raw '{"clearCache": false}'
+            -d $'{"clearCache": false}'
 
       - name: Deploy Scheduler
         run: |
@@ -120,7 +120,7 @@ jobs:
             "https://api.render.com/v1/services/${{ secrets.RENDER_API_ID_SCHEDULER }}/deploys" \
             -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
             -H "Content-Type: application/json" \
-            --data-raw '{"clearCache": false}'
+            -d $'{"clearCache": false}'
 
       - name: Deploy Worker
         run: |
@@ -128,7 +128,7 @@ jobs:
             "https://api.render.com/v1/services/${{ secrets.RENDER_API_ID_WORKER }}/deploys" \
             -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
             -H "Content-Type: application/json" \
-            --data-raw '{"clearCache": false}'
+            -d $'{"clearCache": false}'
 
       - name: Deploy Frontend
         run: |
@@ -136,4 +136,4 @@ jobs:
             "https://api.render.com/v1/services/${{ secrets.RENDER_API_ID_FRONTEND }}/deploys" \
             -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
             -H "Content-Type: application/json" \
-            --data-raw '{"clearCache": false}'
+            -d $'{"clearCache": false}'
