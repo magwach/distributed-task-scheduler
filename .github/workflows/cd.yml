@@ -109,34 +109,34 @@ jobs:
       - name: Deploy API
         run: |
           curl -X POST \
-            "https://api.render.com/v1/services/${{ secrets.RENDER_API_ID_API }}/deploys" \
-            -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
-            -H "Content-Type: application/json" \
-            -d '{"clearCache": false}'
+          "https://api.render.com/v1/services/${{ secrets.RENDER_API_ID_API }}/deploys" \
+          -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+          -H "Content-Type: application/json" \
+          --data-raw '{"clearCache":false}'
 
       - name: Deploy Scheduler
         run: |
           curl -X POST \
-            "https://api.render.com/v1/services/${{ secrets.RENDER_API_ID_SCHEDULER }}/deploys" \
-            -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
-            -H "Content-Type: application/json" \
-            -d '{"clearCache": false}'
+          "https://api.render.com/v1/services/${{ secrets.RENDER_API_ID_SCHEDULER }}/deploys" \
+          -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+          -H "Content-Type: application/json" \
+          --data-raw '{"clearCache":false}'
 
       - name: Deploy Worker
         run: |
           curl -X POST \
-            "https://api.render.com/v1/services/${{ secrets.RENDER_API_ID_WORKER }}/deploys" \
-            -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
-            -H "Content-Type: application/json" \
-            -d '{"clearCache": false}'
+          "https://api.render.com/v1/services/${{ secrets.RENDER_API_ID_WORKER }}/deploys" \
+          -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+          -H "Content-Type: application/json" \
+          --data-raw '{"clearCache":false}'
 
       - name: Deploy Frontend
         run: |
-          curl -X POST \
-            "https://api.render.com/v1/services/${{ secrets.RENDER_API_ID_FRONTEND }}/deploys" \
-            -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
-            -H "Content-Type: application/json" \
-            -d '{"clearCache": false}'
+          curl --fail -X POST \
+          "https://api.render.com/v1/services/${{ secrets.RENDER_API_ID_FRONTEND }}/deploys" \
+          -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+          -H "Content-Type: application/json" \
+          --data-raw '{"clearCache":false}'
 
       - name: Deployment complete
         run: echo "All services deployed to Render successfully."
