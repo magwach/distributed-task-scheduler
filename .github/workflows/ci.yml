@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: ['*']
+    branches: ["*"]
   pull_request:
-    branches: ['*']
+    branches: ["*"]
 
 jobs:
   # ─── Backend Tests ────────────────────────────
@@ -30,7 +30,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: "1.21"
           cache-dependency-path: backend/go.sum
 
       - name: Install dependencies
@@ -39,7 +39,7 @@ jobs:
 
       - name: Run tests
         working-directory: backend
-        run: go test -v -cover ./...
+        run: go test ./...
         env:
           JWT_SECRET: test_secret_for_ci
           REDIS_ADDR: localhost:6379
