@@ -43,8 +43,8 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgres://postgres:postgres@postgres:5432/task_scheduler?sslmode=disable
-      REDIS_ADDR: redis:6379
+      DATABASE_URL: postgresql://neondb_owner:npg_Yg98UqsLPyKA@ep-winter-morning-ang9zh94-pooler.c-6.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+      REDIS_ADDR: rediss://default:gQAAAAAAASy1AAIncDI3ZjkzZGM0ZjE1ZDE0ODMxOWVlMTc2MTcyMGQyNjFlN3AyNzY5ODE@fine-elk-76981.upstash.io:6379
       APP_PORT: 8080
       JWT_SECRET: ${JWT_SECRET}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
@@ -69,8 +69,8 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgres://postgres:postgres@postgres:5432/task_scheduler?sslmode=disable
-      REDIS_ADDR: redis:6379
+      DATABASE_URL: postgresql://neondb_owner:npg_Yg98UqsLPyKA@ep-winter-morning-ang9zh94-pooler.c-6.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+      REDIS_ADDR: rediss://default:gQAAAAAAASy1AAIncDI3ZjkzZGM0ZjE1ZDE0ODMxOWVlMTc2MTcyMGQyNjFlN3AyNzY5ODE@fine-elk-76981.upstash.io:6379
     depends_on:
       postgres:
         condition: service_healthy
@@ -85,8 +85,8 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgres://postgres:postgres@postgres:5432/task_scheduler?sslmode=disable
-      REDIS_ADDR: redis:6379
+      DATABASE_URL: postgresql://neondb_owner:npg_Yg98UqsLPyKA@ep-winter-morning-ang9zh94-pooler.c-6.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+      REDIS_ADDR: rediss://default:gQAAAAAAASy1AAIncDI3ZjkzZGM0ZjE1ZDE0ODMxOWVlMTc2MTcyMGQyNjFlN3AyNzY5ODE@fine-elk-76981.upstash.io:6379
     depends_on:
       postgres:
         condition: service_healthy
@@ -103,8 +103,8 @@ services:
       context: ./frontend
       dockerfile: ../docker/frontend/Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: http://localhost:8080/api/v1
-        NEXT_PUBLIC_WEB_SOCKET_URL: localhost:8080
+        NEXT_PUBLIC_API_URL: https://task.api.magwach.site/api/v1
+        NEXT_PUBLIC_WEB_SOCKET_URL: task.api.magwach.site
     container_name: task-scheduler-frontend
     env_file:
       - .env
